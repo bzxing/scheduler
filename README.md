@@ -21,4 +21,4 @@ where completion_time is defined as when the last subjob of the job is done, and
 
 Time value, duration and priority are represented by basic unsigned integers. Define 0 as genesis.
 
-Run the python script /src/input/gen.py to generate random input file.
+Run the python script /src/input/gen.py to generate random input file. To run the scheduler program, first run ```make``` under ```src``` directory, then pipe a legal input file into it ```src/bin/scheduler``` executable.
