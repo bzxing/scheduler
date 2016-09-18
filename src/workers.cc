@@ -14,20 +14,30 @@ namespace
 
 }
 
-WORKER_ENTRY::WORKER_ENTRY(std::string && name)
+WORKER_ENTRY::WORKER_ENTRY(WORKER_NAME && name)
 : m_name(std::move(name))
 {
 };
 
-std::string WORKER_ENTRY::get_name() const
+const WORKER_NAME & WORKER_ENTRY::get_name() const
 {
 	return m_name;
 }
 
 void WORKER_MGR::add_worker(WORKER_ENTRY && worker)
 {
-	// Use std::move
 	std::cout << "Hello worker " << worker.get_name() << std::endl;
+	m_workers.push_back(std::move(worker));
+}
+
+WORKER_MGR::CITER WORKER_MGR::cbegin() const
+{
+	return m_workers.cbegin();
+}
+
+WORKER_MGR::CITER WORKER_MGR::cend() const
+{
+	return m_workers.cend();
 }
 
 WORKER_MGR & WORKER_MGR::get_inst()
