@@ -1,5 +1,5 @@
 CC=g++
-CPPFLAGS=-c -Wall -Wextra -O2 -std=c++11
+CPPFLAGS=-c -Wall -Wextra -O2 -std=c++14
 DEPFLAGS=-M
 
 BUILDDIR=build

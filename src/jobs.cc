@@ -2,10 +2,15 @@
 #include "jobs.hh"
 
 #include <algorithm>
+#include <iostream>
 
 namespace JOBS
 {
 
+// Global Variabl Declarations /////////////////////////////////////////////////////////////////////
+JOB_QUEUE * JOB_QUEUE::m_job_queue_inst = nullptr;
+
+// Anonymous Namesoace /////////////////////////////////////////////////////////////////////////////
 namespace
 {
 
@@ -33,6 +38,7 @@ bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 } // End anonymous namespace
 
 
+// Class Routines //////////////////////////////////////////////////////////////////////////////////
 JOB_ENTRY::JOB_ENTRY
 (
 	JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
@@ -69,13 +75,23 @@ TIME JOB_ENTRY::get_subtask_duration() const
 	return m_subtask_duration;
 }
 
+std::string JOB_ENTRY::to_string() const
+{
+	return m_name + " " + std::to_string(m_num_subtasks) +
+		" " + std::to_string(m_subtask_duration) +
+		" " + std::to_string(m_earliest_start_time) +
+		" " + std::to_string(m_priority);
+}
+
+
 
 void JOB_QUEUE::add_job(JOB_ENTRY && job)
 {
+	std::cout << "Hello job " << job.get_name() << std::endl;
 	auto iter = m_jobs.begin();
 	for (; iter != m_jobs.end(); ++iter)
 	{
-		if (l_job_queue_order_less_than(*iter, job))
+		if (l_job_queue_order_less_than(job, *iter))
 		{
 			break;
 		}
@@ -95,9 +111,39 @@ JOB_QUEUE::ITER JOB_QUEUE::end()
 	return m_jobs.end();
 }
 
+JOB_QUEUE::CITER JOB_QUEUE::cbegin() const
+{
+	return m_jobs.cbegin();
+}
 
 
+JOB_QUEUE::CITER JOB_QUEUE::cend() const
+{
+	return m_jobs.cend();
+}
+
+
+JOB_QUEUE & JOB_QUEUE::get_inst()
+{
+	if (m_job_queue_inst == nullptr)
+	{
+		m_job_queue_inst = new JOB_QUEUE;
+	}
+	return *m_job_queue_inst;
+}
+
+std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q)
+{
+	for (auto iter = job_q.cbegin(); iter != job_q.cend(); ++iter)
+	{
+		os << iter->to_string() << std::endl;
+	}
+	return os;
+}
 
 
 } // End namespace JOBS
+
+
+
 

@@ -34,6 +34,8 @@ public:
 	TIME get_earliest_start_time() const;
 	TIME get_subtask_duration() const;
 
+	std::string to_string() const;
+
 private:
 	JOB_NAME m_name;
 	PRIORITY m_priority;
@@ -49,24 +51,36 @@ private:
 	typedef std::list<JOB_ENTRY> CONTAINER;
 public:
 	typedef CONTAINER::iterator ITER;
+	typedef CONTAINER::const_iterator CITER;
 
-	JOB_QUEUE() = default;
-	JOB_QUEUE(const JOB_QUEUE &) = delete;
-	JOB_QUEUE(JOB_QUEUE &&) = delete;
 	JOB_QUEUE & operator=(const JOB_QUEUE &) = delete;
 	JOB_QUEUE & operator=(JOB_QUEUE &&) = delete;
-	~JOB_QUEUE() = default;
 
 	void add_job(JOB_ENTRY && job);
+	CITER cbegin() const;
+	CITER cend() const;
 	ITER begin();
 	ITER end();
 
+	friend std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
+
+	static JOB_QUEUE & get_inst();
+
 private:
+	JOB_QUEUE() = default;
+	JOB_QUEUE(const JOB_QUEUE &) = delete;
+	JOB_QUEUE(JOB_QUEUE &&) = delete;
+	~JOB_QUEUE() = default;
+
 	CONTAINER m_jobs;
 
+	static JOB_QUEUE * m_job_queue_inst;
 };
 
+std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
 
 }
+
+
 
 #endif
