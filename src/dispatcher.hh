@@ -6,8 +6,9 @@
 namespace DISPATCHER
 {
 
-}
+void dispatch_all();
 
 
+} // End namespace DISPATCHER
 
 #endif

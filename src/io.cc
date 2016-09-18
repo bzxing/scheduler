@@ -1,6 +1,7 @@
 
 #include "jobs.hh"
 #include "workers.hh"
+#include "dispatcher.hh"
 
 #include <iostream>
 #include <string>
@@ -48,6 +49,7 @@ WORKERS::WORKER_ENTRY l_string_to_worker_entry(const std::string & line)
 
 void load_from_stdin()
 {
+	std::cout << "Start reading from stdin!" << std::endl;
 	while (std::cin.good())
 	{
 		std::string line;
@@ -75,7 +77,7 @@ void load_from_stdin()
 			exit(1);
 		}
 	}
-	std::cout << "Done! Here's the results:" << std::endl;
+	std::cout << "Done parsing! Here's the results:" << std::endl;
 	std::cout << JOBS::JOB_QUEUE::get_inst() << std::endl;
 }
 
@@ -84,5 +86,6 @@ void load_from_stdin()
 int main()
 {
 	IO::load_from_stdin();
+	DISPATCHER::dispatch_all();
 	return 0;
 }

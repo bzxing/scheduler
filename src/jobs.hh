@@ -57,10 +57,17 @@ public:
 	JOB_QUEUE & operator=(JOB_QUEUE &&) = delete;
 
 	void add_job(JOB_ENTRY && job);
-	CITER cbegin() const;
-	CITER cend() const;
+	void erase(ITER job_iter);
+
 	ITER begin();
 	ITER end();
+
+	CITER cbegin() const;
+	CITER cend() const;
+
+	bool empty() const;
+	size_t size() const;
+
 
 	friend std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
 

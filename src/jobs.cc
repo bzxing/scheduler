@@ -99,6 +99,10 @@ void JOB_QUEUE::add_job(JOB_ENTRY && job)
 	m_jobs.insert(iter, std::move(job));
 }
 
+void JOB_QUEUE::erase(ITER job_iter)
+{
+	m_jobs.erase(job_iter);
+}
 
 JOB_QUEUE::ITER JOB_QUEUE::begin()
 {
@@ -116,12 +120,20 @@ JOB_QUEUE::CITER JOB_QUEUE::cbegin() const
 	return m_jobs.cbegin();
 }
 
-
 JOB_QUEUE::CITER JOB_QUEUE::cend() const
 {
 	return m_jobs.cend();
 }
 
+bool JOB_QUEUE::empty() const
+{
+	return m_jobs.empty();
+}
+
+size_t JOB_QUEUE::size() const
+{
+	return m_jobs.size();
+}
 
 JOB_QUEUE & JOB_QUEUE::get_inst()
 {
