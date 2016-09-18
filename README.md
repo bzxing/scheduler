@@ -1,7 +1,7 @@
 # Scheduler
 
 ## Problem Statement
-This is my solution to a past programming competition problem I found online. I rephrase it as follows:
+This is my (still ongoing) solution to a past programming competition problem I found online. I rephrase it as follows:
 
 Your program will read an input file that contains a list of jobs. Each job has 5 attributes:
 * Name
