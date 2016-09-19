@@ -25,6 +25,7 @@ JOBQ_ITER l_pick_best_job_to_execute()
 	return job_q.begin();
 }
 
+// Send job to workers and dequeue it.
 void l_dispatch(JOBQ_ITER jobq_iter)
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
