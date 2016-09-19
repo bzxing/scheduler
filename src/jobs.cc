@@ -97,7 +97,7 @@ JOB_QUEUE::JOB_QUEUE()
 
 void JOB_QUEUE::add_job(const JOB_ENTRY & job)
 {
-	bool debug = true;
+	bool debug = false;
 	if (debug) std::cout << "Queuing job " << job.get_name() << std::endl;
 	auto iter = m_jobs.begin();
 	for (; iter != m_jobs.end(); ++iter)

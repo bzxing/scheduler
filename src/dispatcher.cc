@@ -30,7 +30,7 @@ void l_dispatch(JOBQ_ITER jobq_iter)
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(jobq_iter != job_q.cend());
 	const JOBS::JOB_ENTRY & job = jobq_iter->get();
-	std::cout << "Dispatching job " << job.to_string() << std::endl;
+	//std::cout << "Dispatching job " << job.to_string() << std::endl;
 	job_q.erase(jobq_iter); // TODO
 	WORKERS::WORKER_MGR::get_inst().submit_job(job);
 }
@@ -39,6 +39,7 @@ void l_dispatch(JOBQ_ITER jobq_iter)
 
 void dispatch_all()
 {
+	const auto & worker_mgr = WORKERS::WORKER_MGR::get_inst();
 	std::cout << "Start dispatching jobs to workers...\n";
 	JOBS::JOB_QUEUE & job_q = JOBS::JOB_QUEUE::get_inst();
 	if (job_q.empty())
@@ -51,7 +52,10 @@ void dispatch_all()
 		JOBQ_ITER best_job = l_pick_best_job_to_execute();
 		l_dispatch(best_job);
 	}
-	std::cout << "Done dispatching!\n";
+	std::cout << "Done dispatching! Here's the result: \n";
+	std::cout << worker_mgr;
+	assert(worker_mgr.execution_history_is_legal());
+	std::cout << "Dispatching big success!\n";
 }
 
 

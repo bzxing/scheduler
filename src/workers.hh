@@ -25,11 +25,13 @@ public:
 	EXEC_HISTORY_ENTRY(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time);
 
 	JOBS::TIME get_start_time() const;
-	JOBS::TIME get_complete_time() const;
+	JOBS::TIME get_complete_time() const; // Defined to be overlapped with next job start time
 	const JOBS::JOB_ENTRY & get_job() const;
 
+	std::string to_string() const;
+
 private:
-	JOBS::JOB_ENTRY m_job;
+	const JOBS::JOB_ENTRY & m_job;
 	JOBS::TIME m_start_time;
 
 };
@@ -38,7 +40,7 @@ private:
 class WORKER_ENTRY
 {
 private:
-	typedef std::vector<EXEC_HISTORY_ENTRY> EXEC_HISTORY;
+	typedef std::list<EXEC_HISTORY_ENTRY> EXEC_HISTORY;
 	typedef EXEC_HISTORY::const_iterator CITER;
 public:
 	WORKER_ENTRY() = delete;
@@ -53,19 +55,26 @@ public:
 	const WORKER_NAME & get_name() const;
 	CITER cbegin() const;
 	CITER cend() const;
+	const EXEC_HISTORY & get_history() const;
 
-	void append_job(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time);
+	CITER insert_job_at_earliest_possible_slot(const JOBS::JOB_ENTRY & job);
+
+	bool execution_history_is_legal() const;
+
+	friend std::ostream & operator<<(std::ostream & os, const WORKER_ENTRY & worker);
 
 private:
 	WORKER_NAME m_name;
 	EXEC_HISTORY m_exec_hist;
 };
+std::ostream & operator<<(std::ostream & os, const WORKER_ENTRY & worker);
 
 class WORKER_MGR
 {
 private:
 	typedef std::vector<WORKER_ENTRY> WORKER_CONTAINER;
 public:
+	typedef WORKER_CONTAINER::iterator ITER;
 	typedef WORKER_CONTAINER::const_iterator CITER;
 
 	WORKER_MGR & operator=(const WORKER_MGR &) = delete;
@@ -75,11 +84,19 @@ public:
 	void submit_job(const JOBS::JOB_ENTRY & job);
 	JOBS::TIME get_eta(const JOBS::JOB_ENTRY & job);
 
+	ITER begin();
+	ITER end();
+
 	size_t size() const;
 	bool empty() const;
 
 	CITER cbegin() const;
 	CITER cend() const;
+
+	bool execution_history_is_legal() const;
+	void verify_execution_history_is_legal() const;
+
+	friend std::ostream & operator<<(std::ostream & os, const WORKER_MGR & worker_mgr);
 
 	static WORKER_MGR & get_inst();
 
@@ -93,6 +110,7 @@ private:
 
 	static WORKER_MGR * m_inst;
 };
+std::ostream & operator<<(std::ostream & os, const WORKER_MGR & worker_mgr);
 
 
 }

@@ -78,8 +78,8 @@ void load_from_stdin()
 		}
 	}
 
-	std::cout << "Done parsing! Here's the results:" << std::endl;
-	std::cout << JOBS::PARSED_JOBS::get_inst();
+	//std::cout << "Done parsing! Here's the results:" << std::endl;
+	//std::cout << JOBS::PARSED_JOBS::get_inst();
 
 	if (JOBS::PARSED_JOBS::get_inst().empty())
 	{
