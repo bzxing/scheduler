@@ -75,6 +75,12 @@ void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job)
 	std::cout << "Workers accepting job: " << job.to_string() << std::endl;
 }
 
+JOBS::TIME WORKER_MGR::get_eta(const JOBS::JOB_ENTRY & job)
+{
+	std::cout << "Querying Job ETA: " << job.to_string() << std::endl;
+	return 0;
+}
+
 WORKER_MGR::CITER WORKER_MGR::cbegin() const
 {
 	return m_workers.cbegin();

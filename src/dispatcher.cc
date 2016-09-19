@@ -21,6 +21,7 @@ JOBQ_ITER l_pick_best_job_to_execute()
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(job_q.begin() != job_q.end());
+	WORKERS::WORKER_MGR::get_inst().get_eta(job_q.begin()->get());
 	return job_q.begin();
 }
 

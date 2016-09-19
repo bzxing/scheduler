@@ -73,6 +73,7 @@ public:
 
 	void add_worker(WORKER_ENTRY && worker);
 	void submit_job(const JOBS::JOB_ENTRY & job);
+	JOBS::TIME get_eta(const JOBS::JOB_ENTRY & job);
 
 	size_t size() const;
 	bool empty() const;
