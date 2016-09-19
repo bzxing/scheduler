@@ -70,6 +70,11 @@ void WORKER_MGR::add_worker(WORKER_ENTRY && worker)
 	m_workers.push_back(std::move(worker));
 }
 
+void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job)
+{
+	std::cout << "Workers accepting job: " << job.to_string() << std::endl;
+}
+
 WORKER_MGR::CITER WORKER_MGR::cbegin() const
 {
 	return m_workers.cbegin();

@@ -1,6 +1,7 @@
 
 #include "dispatcher.hh"
 #include "jobs.hh"
+#include "workers.hh"
 
 #include <vector>
 #include <cassert>
@@ -10,25 +11,27 @@ namespace DISPATCHER
 {
 
 typedef JOBS::JOB_QUEUE JOB_QUEUE;
-typedef JOB_QUEUE::ITER JOB_ITER;
+typedef JOB_QUEUE::ITER JOBQ_ITER;
 
 namespace
 {
 
 
-JOB_ITER l_pick_best_job_to_execute()
+JOBQ_ITER l_pick_best_job_to_execute()
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(job_q.begin() != job_q.end());
 	return job_q.begin();
 }
 
-void l_dispatch(JOB_ITER job_iter)
+void l_dispatch(JOBQ_ITER jobq_iter)
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
-	assert(job_iter != job_q.cend());
-	std::cout << "Dispatching job " << job_iter->get().to_string() << std::endl;
-	job_q.erase(job_iter); // TODO
+	assert(jobq_iter != job_q.cend());
+	const JOBS::JOB_ENTRY & job = jobq_iter->get();
+	std::cout << "Dispatching job " << job.to_string() << std::endl;
+	job_q.erase(jobq_iter); // TODO
+	WORKERS::WORKER_MGR::get_inst().submit_job(job);
 }
 
 } // End anonymous namespace
@@ -44,7 +47,7 @@ void dispatch_all()
 	}
 	while (!job_q.empty())
 	{
-		JOB_ITER best_job = l_pick_best_job_to_execute();
+		JOBQ_ITER best_job = l_pick_best_job_to_execute();
 		l_dispatch(best_job);
 	}
 	std::cout << "Done dispatching!\n";
