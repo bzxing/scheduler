@@ -64,7 +64,7 @@ void load_from_stdin()
 
 		if (match[0] == "job")
 		{
-			JOBS::JOB_QUEUE::get_inst().add_job(l_string_to_job_entry(line));
+			JOBS::PARSED_JOBS::get_inst().add_job(l_string_to_job_entry(line));
 		}
 		else if (match[0] == "worker")
 		{
@@ -77,8 +77,20 @@ void load_from_stdin()
 			exit(1);
 		}
 	}
+
 	std::cout << "Done parsing! Here's the results:" << std::endl;
-	std::cout << JOBS::JOB_QUEUE::get_inst() << std::endl;
+	std::cout << JOBS::PARSED_JOBS::get_inst();
+
+	if (JOBS::PARSED_JOBS::get_inst().empty())
+	{
+		std::cerr << "No jobs to do. Quitting...";
+		exit(1);
+	}
+	if (WORKERS::WORKER_MGR::get_inst().empty())
+	{
+		std::cerr << "No workers found. Quitting...";
+		exit(1);
+	}
 }
 
 }
@@ -86,6 +98,7 @@ void load_from_stdin()
 int main()
 {
 	IO::load_from_stdin();
+	JOBS::JOB_QUEUE::load();
 	DISPATCHER::dispatch_all();
 	return 0;
 }

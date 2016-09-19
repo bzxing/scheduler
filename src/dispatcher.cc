@@ -27,7 +27,7 @@ void l_dispatch(JOB_ITER job_iter)
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(job_iter != job_q.cend());
-	std::cout << "Dispatching job " << job_iter->to_string() << std::endl;
+	std::cout << "Dispatching job " << job_iter->get().to_string() << std::endl;
 	job_q.erase(job_iter); // TODO
 }
 

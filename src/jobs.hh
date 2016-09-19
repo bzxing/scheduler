@@ -4,7 +4,9 @@
 
 #include <string>
 #include <cstring>
+#include <vector>
 #include <list>
+#include <functional>
 
 
 namespace JOBS
@@ -19,7 +21,7 @@ class JOB_ENTRY
 {
 public:
 	JOB_ENTRY() = delete;
-	JOB_ENTRY(const JOB_ENTRY &) = delete;
+	JOB_ENTRY(const JOB_ENTRY &) = default;
 	JOB_ENTRY(JOB_ENTRY &&) = default;
 	JOB_ENTRY & operator=(const JOB_ENTRY &) = delete;
 	JOB_ENTRY & operator=(JOB_ENTRY &&) = delete;
@@ -48,7 +50,7 @@ private:
 class JOB_QUEUE
 {
 private:
-	typedef std::list<JOB_ENTRY> CONTAINER;
+	typedef std::list<std::reference_wrapper<const JOB_ENTRY>> CONTAINER;
 public:
 	typedef CONTAINER::iterator ITER;
 	typedef CONTAINER::const_iterator CITER;
@@ -56,7 +58,6 @@ public:
 	JOB_QUEUE & operator=(const JOB_QUEUE &) = delete;
 	JOB_QUEUE & operator=(JOB_QUEUE &&) = delete;
 
-	void add_job(JOB_ENTRY && job);
 	void erase(ITER job_iter);
 
 	ITER begin();
@@ -71,20 +72,57 @@ public:
 
 	friend std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
 
+	static void load();
 	static JOB_QUEUE & get_inst();
 
 private:
-	JOB_QUEUE() = default;
+	JOB_QUEUE();
 	JOB_QUEUE(const JOB_QUEUE &) = delete;
 	JOB_QUEUE(JOB_QUEUE &&) = delete;
 	~JOB_QUEUE() = default;
+
+	void add_job(const JOB_ENTRY & job);
 
 	CONTAINER m_jobs;
 
 	static JOB_QUEUE * m_job_queue_inst;
 };
 
+class PARSED_JOBS
+{
+private:
+	typedef std::vector<JOB_ENTRY> CONTAINER;
+public:
+	typedef CONTAINER::const_iterator CITER;
+
+	PARSED_JOBS & operator=(const PARSED_JOBS &) = delete;
+	PARSED_JOBS & operator=(PARSED_JOBS &&) = delete;
+
+	bool empty() const;
+	size_t size() const;
+
+	void add_job(JOB_ENTRY && job);
+
+	CITER cbegin() const;
+	CITER cend() const;
+
+	friend std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & job_q);
+
+	static PARSED_JOBS & get_inst();
+
+private:
+	PARSED_JOBS() = default;
+	PARSED_JOBS(const PARSED_JOBS &) = delete;
+	PARSED_JOBS(PARSED_JOBS &&) = delete;
+	~PARSED_JOBS() = default;
+
+	CONTAINER m_jobs;
+
+	static PARSED_JOBS * m_instance;
+};
+
 std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
+std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & job_q);
 
 }
 

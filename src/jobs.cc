@@ -3,12 +3,14 @@
 
 #include <algorithm>
 #include <iostream>
+#include <cassert>
 
 namespace JOBS
 {
 
 // Global Variabl Declarations /////////////////////////////////////////////////////////////////////
 JOB_QUEUE * JOB_QUEUE::m_job_queue_inst = nullptr;
+PARSED_JOBS * PARSED_JOBS::m_instance = nullptr;
 
 // Anonymous Namesoace /////////////////////////////////////////////////////////////////////////////
 namespace
@@ -83,11 +85,20 @@ std::string JOB_ENTRY::to_string() const
 		" " + std::to_string(m_priority);
 }
 
-
-
-void JOB_QUEUE::add_job(JOB_ENTRY && job)
+JOB_QUEUE::JOB_QUEUE()
 {
-	std::cout << "Hello job " << job.get_name() << std::endl;
+	const PARSED_JOBS & parsed_jobs = PARSED_JOBS::get_inst();
+	assert(!parsed_jobs.empty());
+	for (auto iter = parsed_jobs.cbegin(); iter != parsed_jobs.cend(); ++iter)
+	{
+		add_job(*iter);
+	}
+}
+
+void JOB_QUEUE::add_job(const JOB_ENTRY & job)
+{
+	bool debug = true;
+	if (debug) std::cout << "Queuing job " << job.get_name() << std::endl;
 	auto iter = m_jobs.begin();
 	for (; iter != m_jobs.end(); ++iter)
 	{
@@ -96,7 +107,7 @@ void JOB_QUEUE::add_job(JOB_ENTRY && job)
 			break;
 		}
 	}
-	m_jobs.insert(iter, std::move(job));
+	m_jobs.insert(iter, job);
 }
 
 void JOB_QUEUE::erase(ITER job_iter)
@@ -135,18 +146,81 @@ size_t JOB_QUEUE::size() const
 	return m_jobs.size();
 }
 
+void JOB_QUEUE::load()
+{
+	bool debug = true;
+
+	if (debug) std::cout << "Loading up job queue...\n";
+
+	assert(m_job_queue_inst == nullptr);
+	assert(!PARSED_JOBS::get_inst().empty());
+	m_job_queue_inst = new JOB_QUEUE;
+	assert(m_job_queue_inst != nullptr);
+	assert(!m_job_queue_inst->empty());
+
+	if (debug)
+	{
+		std::cout << "Done loading job queue! Here's the result in order:\n";
+		std::cout << *m_job_queue_inst;
+	}
+
+}
+
+
 JOB_QUEUE & JOB_QUEUE::get_inst()
 {
-	if (m_job_queue_inst == nullptr)
-	{
-		m_job_queue_inst = new JOB_QUEUE;
-	}
+	assert(m_job_queue_inst != nullptr);
 	return *m_job_queue_inst;
 }
 
 std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q)
 {
 	for (auto iter = job_q.cbegin(); iter != job_q.cend(); ++iter)
+	{
+		os << iter->get().to_string() << std::endl;
+	}
+	return os;
+}
+
+void PARSED_JOBS::add_job(JOB_ENTRY && job)
+{
+	bool debug = true;
+	if (debug) std::cout << "Parsed job from input: " << job.get_name() << std::endl;
+	m_jobs.push_back(std::move(job));
+}
+
+bool PARSED_JOBS::empty() const
+{
+	return m_jobs.empty();
+}
+
+size_t PARSED_JOBS::size() const
+{
+	return m_jobs.size();
+}
+
+PARSED_JOBS::CITER PARSED_JOBS::cbegin() const
+{
+	return m_jobs.cbegin();
+}
+
+PARSED_JOBS::CITER PARSED_JOBS::cend() const
+{
+	return m_jobs.cend();
+}
+
+PARSED_JOBS & PARSED_JOBS::get_inst()
+{
+	if (m_instance == nullptr)
+	{
+		m_instance = new PARSED_JOBS;
+	}
+	return *m_instance;
+}
+
+std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & jobs)
+{
+	for (auto iter = jobs.cbegin(); iter != jobs.cend(); ++iter)
 	{
 		os << iter->to_string() << std::endl;
 	}
