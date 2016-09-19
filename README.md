@@ -3,14 +3,14 @@
 ## Problem Statement
 This is my (still ongoing) solution to a past programming competition problem I found online. I rephrase it as follows:
 
-Your program will read an input file that contains a list of jobs. Each job has 5 attributes:
+Your program will read an input file (from stdin) that contains a list of jobs. Each job has 5 attributes:
 * Name
-* Priority
-* Earliest allowed time to start
 * Number of subjobs
 * Time required to finish
+* Earliest allowed time to start
+* Priority
 
-Each job is divided into a fixed number of subjobs for you, each requires the same amount of time to complete. 
+Each job is divided into a fixed number of subjobs for you, each requires the same amount of time to complete. These parameters are all constrained by the input file. Look into ```//input``` directory for a script that generate random input files, as well as some input file examples I generated for you.
 
 The input file also tells you how many robots you have. Each robot can process at most one subjob at any given time, but you can assign as many robots to execute as many subjobs from the same job as you wish. Once a robot starts to execute a subjob, it must run till completion without interruption. Robots are allowed to idle.
 
