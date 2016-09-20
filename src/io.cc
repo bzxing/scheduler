@@ -30,7 +30,7 @@ JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line)
 	return job;
 }
 
-WORKERS::WORKER_ENTRY l_string_to_worker_entry(const std::string & line)
+WORKERS::WORKER l_string_to_worker_entry(const std::string & line)
 {
 	std::regex regex("(\\w+) (\\w+)");
 	std::smatch match;
@@ -39,7 +39,7 @@ WORKERS::WORKER_ENTRY l_string_to_worker_entry(const std::string & line)
 	assert(match.size() == 3);
 	assert(match[1] == "worker");
 
-	WORKERS::WORKER_ENTRY worker(match[2]);
+	WORKERS::WORKER worker(match[2]);
 	return worker;
 }
 

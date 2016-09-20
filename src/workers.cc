@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include <limits>
+#include <algorithm>
 
 namespace WORKERS
 {
@@ -13,63 +15,24 @@ WORKER_MGR * WORKER_MGR::m_inst = nullptr;
 namespace
 {
 
+typedef std::vector<WORKER::SUBTASK_CITER> SUBMISSION_LIST;
+
+
 JOBS::TIME l_get_job_completion_time(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time)
 {
 	assert(job.get_subtask_duration() > 0);
 	return start_time + job.get_subtask_duration();
 }
 
-}
-
-EXEC_HISTORY_ENTRY::EXEC_HISTORY_ENTRY(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time)
-: m_job(job), m_start_time(start_time)
-{
-	assert(m_start_time >= m_job.get_earliest_start_time());
-	assert(m_job.get_subtask_duration() > 0);
-}
-
-JOBS::TIME EXEC_HISTORY_ENTRY::get_start_time() const
-{
-	return m_start_time;
-}
-
-JOBS::TIME EXEC_HISTORY_ENTRY::get_complete_time() const
-{
-	return l_get_job_completion_time(m_job, m_start_time);
-}
-
-const JOBS::JOB_ENTRY & EXEC_HISTORY_ENTRY::get_job() const
-{
-	return m_job;
-}
-
-std::string EXEC_HISTORY_ENTRY::to_string() const
-{
-	std::string retval = m_job.to_string();
-	retval += " ";
-	retval += std::to_string(get_start_time());
-	retval += " ";
-	retval += std::to_string(get_complete_time());
-	return retval;
-}
-
-WORKER_ENTRY::CITER WORKER_ENTRY::cbegin() const
-{
-	return m_exec_hist.cbegin();
-}
-
-WORKER_ENTRY::CITER WORKER_ENTRY::cend() const
-{
-	return m_exec_hist.cend();
-}
-
-WORKER_ENTRY::CITER WORKER_ENTRY::insert_job_at_earliest_possible_slot(const JOBS::JOB_ENTRY & job)
+std::pair<WORKER::SUBTASK_CITER, JOBS::TIME>
+find_earliest_subtask_insertion_slot_and_start_time(
+	const JOBS::JOB_ENTRY & job, const WORKER::SUBTASK_CONTAINER & exec_hist)
 {
 	JOBS::TIME prev_complete_time = 0;
 	const JOBS::TIME earliest_start = job.get_earliest_start_time();
 
 	// Find the right hole of right size where the job should be inserted.
-	for (auto iter = m_exec_hist.cbegin(); iter != m_exec_hist.cend(); ++iter)
+	for (auto iter = exec_hist.cbegin(); iter != exec_hist.cend(); ++iter)
 	{
 		assert(iter->get_start_time() >= prev_complete_time);
 
@@ -90,15 +53,74 @@ WORKER_ENTRY::CITER WORKER_ENTRY::insert_job_at_earliest_possible_slot(const JOB
 		if (job.get_subtask_duration() <= hole_size)// can fit into the hole
 		{
 			// This is the right hole
-			return m_exec_hist.emplace(iter, job, clamped_hole_start);
+			return std::make_pair(iter, clamped_hole_start);
 		}
 	}
 
 	// No hole works. Put it at the end of list.
-	return m_exec_hist.emplace(m_exec_hist.cend(), job, std::max(earliest_start, prev_complete_time));
+	return std::make_pair(exec_hist.cend(), std::max(earliest_start, prev_complete_time));
 }
 
-bool WORKER_ENTRY::execution_history_is_legal() const
+
+} // End anonymous namespace
+
+SUBTASK::SUBTASK(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time)
+: m_job(job), m_start_time(start_time)
+{
+	assert(m_start_time >= m_job.get_earliest_start_time());
+	assert(m_job.get_subtask_duration() > 0);
+}
+
+JOBS::TIME SUBTASK::get_start_time() const
+{
+	return m_start_time;
+}
+
+JOBS::TIME SUBTASK::get_complete_time() const
+{
+	return l_get_job_completion_time(m_job, m_start_time);
+}
+
+const JOBS::JOB_ENTRY & SUBTASK::get_job() const
+{
+	return m_job;
+}
+
+std::string SUBTASK::to_string() const
+{
+	std::string retval = m_job.to_string();
+	retval += ": ";
+	retval += std::to_string(get_start_time());
+	retval += " ";
+	retval += std::to_string(get_complete_time());
+	return retval;
+}
+
+WORKER::SUBTASK_CITER WORKER::cbegin() const
+{
+	return m_exec_hist.cbegin();
+}
+
+WORKER::SUBTASK_CITER WORKER::cend() const
+{
+	return m_exec_hist.cend();
+}
+
+WORKER::SUBTASK_CITER WORKER::submit_subtask(const JOBS::JOB_ENTRY & job)
+{
+	auto iter_time_pair = find_earliest_subtask_insertion_slot_and_start_time(job, m_exec_hist);
+	return m_exec_hist.emplace(iter_time_pair.first, job, iter_time_pair.second);
+}
+
+// Ruturn a copy of how the subtask would look like (start and complete time) if it were submitted,
+// but don't really change the execution history
+SUBTASK WORKER::try_submit_subtask(const JOBS::JOB_ENTRY & job) const
+{
+	auto iter_time_pair = find_earliest_subtask_insertion_slot_and_start_time(job, m_exec_hist);
+	return SUBTASK(job, iter_time_pair.second);
+}
+
+bool WORKER::execution_history_is_legal() const
 {
 	JOBS::TIME prev_complete_time = 0;
 	for (const auto & entry: m_exec_hist)
@@ -112,28 +134,28 @@ bool WORKER_ENTRY::execution_history_is_legal() const
 	return true;
 }
 
-std::ostream & operator<<(std::ostream & os, const WORKER_ENTRY & worker)
+std::ostream & operator<<(std::ostream & os, const WORKER & worker)
 {
 	os << "Worker " << worker.get_name() << " execution history: \n";
-	for (const EXEC_HISTORY_ENTRY & hist_entry: worker.m_exec_hist)
+	for (const SUBTASK & hist_entry: worker.m_exec_hist)
 	{
 		os << "  " << hist_entry.to_string() << std::endl;
 	}
 	return os;
 }
 
-WORKER_ENTRY::WORKER_ENTRY(WORKER_NAME && name)
+WORKER::WORKER(WORKER_NAME && name)
 : m_name(std::move(name))
 {
 
 }
 
-const WORKER_NAME & WORKER_ENTRY::get_name() const
+const WORKER_NAME & WORKER::get_name() const
 {
 	return m_name;
 }
 
-void WORKER_MGR::add_worker(WORKER_ENTRY && worker)
+void WORKER_MGR::add_worker(WORKER && worker)
 {
 	std::cout << "Hello worker " << worker.get_name() << std::endl;
 	m_workers.push_back(std::move(worker));
@@ -142,37 +164,56 @@ void WORKER_MGR::add_worker(WORKER_ENTRY && worker)
 void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job)
 {
 	assert(!empty());
+	SUBMISSION_LIST submission_list;
 	//std::cout << "Workers accepting job: " << job.to_string() << std::endl;
+	JOBS::TIME start_time = std::numeric_limits<JOBS::TIME>::max();
+	JOBS::TIME end_time = std::numeric_limits<JOBS::TIME>::min();
 	for (size_t i_subtask = 0; i_subtask < job.get_num_subtasks(); ++i_subtask)
 	{
-		// TODO: submit to worker 0 for now.
-		begin()->insert_job_at_earliest_possible_slot(job);
+		// Pick worker with best completion time
+		WORKER_ITER best_worker_iter = std::min_element(
+			m_workers.begin(), m_workers.end(),
+			[&job](const WORKER & lhs, const WORKER & rhs)
+			{
+				return bool(
+					lhs.try_submit_subtask(job).get_complete_time() <
+					rhs.try_submit_subtask(job).get_complete_time());
+			}
+		);
+
+		// Submit it
+		WORKER::SUBTASK_CITER subtask_citer = best_worker_iter->submit_subtask(job);
+		start_time = std::min(start_time, subtask_citer->get_start_time());
+		end_time = std::max(end_time, subtask_citer->get_complete_time());
 	}
+	// Done submission. Now register job as submitted and mark start and end time.
+	// job_status.set_as_submitted(start_time, end_time);
+	#pragma message "TODO: Mark job final start & completion time"
 }
 
 JOBS::TIME WORKER_MGR::get_eta(const JOBS::JOB_ENTRY & job)
 {
-	//std::cout << "Querying Job ETA: " << job.to_string() << std::endl;
-	// TODO
+	assert(&job);
+	#pragma message "TODO: get job ETA"
 	return 0;
 }
 
-WORKER_MGR::ITER WORKER_MGR::begin()
+WORKER_MGR::WORKER_ITER WORKER_MGR::begin()
 {
 	return m_workers.begin();
 }
 
-WORKER_MGR::ITER WORKER_MGR::end()
+WORKER_MGR::WORKER_ITER WORKER_MGR::end()
 {
 	return m_workers.end();
 }
 
-WORKER_MGR::CITER WORKER_MGR::cbegin() const
+WORKER_MGR::WORKER_CITER WORKER_MGR::cbegin() const
 {
 	return m_workers.cbegin();
 }
 
-WORKER_MGR::CITER WORKER_MGR::cend() const
+WORKER_MGR::WORKER_CITER WORKER_MGR::cend() const
 {
 	return m_workers.cend();
 }
@@ -180,7 +221,7 @@ WORKER_MGR::CITER WORKER_MGR::cend() const
 bool WORKER_MGR::execution_history_is_legal() const
 {
 	std::cout << "Checking worker execution history legality...\n";
-	for (const WORKER_ENTRY & worker: m_workers)
+	for (const WORKER & worker: m_workers)
 	{
 		if (worker.execution_history_is_legal() == false)
 		{
@@ -214,7 +255,7 @@ WORKER_MGR & WORKER_MGR::get_inst()
 
 std::ostream & operator<<(std::ostream & os, const WORKER_MGR & worker_mgr)
 {
-	for (const WORKER_ENTRY & worker: worker_mgr.m_workers)
+	for (const WORKER & worker: worker_mgr.m_workers)
 	{
 		os << worker;
 	}

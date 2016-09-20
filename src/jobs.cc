@@ -41,6 +41,34 @@ bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 
 
 // Class Routines //////////////////////////////////////////////////////////////////////////////////
+
+bool JOB_STATUS::submitted() const
+{
+	return m_submitted;
+}
+
+TIME JOB_STATUS::get_start_time() const
+{
+	assert(submitted());
+	return m_start_time;
+}
+
+TIME JOB_STATUS::get_complete_time() const
+{
+	assert(submitted());
+	return m_complete_time;
+}
+
+void JOB_STATUS::set_as_submitted(TIME start, TIME end)
+{
+	assert(!submitted());
+	assert(end > start);
+	m_submitted = true;
+	m_start_time = start;
+	m_complete_time = end;
+}
+
+
 JOB_ENTRY::JOB_ENTRY
 (
 	JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
@@ -55,6 +83,11 @@ JOB_ENTRY::JOB_ENTRY
 const JOB_NAME & JOB_ENTRY::get_name() const
 {
 	return m_name;
+}
+
+const JOB_STATUS & JOB_ENTRY::get_status() const
+{
+	return m_status;
 }
 
 PRIORITY JOB_ENTRY::get_priority() const
@@ -79,10 +112,10 @@ TIME JOB_ENTRY::get_subtask_duration() const
 
 std::string JOB_ENTRY::to_string() const
 {
-	return m_name + " " + std::to_string(m_num_subtasks) +
-		" " + std::to_string(m_subtask_duration) +
-		" " + std::to_string(m_earliest_start_time) +
-		" " + std::to_string(m_priority);
+	return m_name + " sub=" + std::to_string(m_num_subtasks) +
+		" dur=" + std::to_string(m_subtask_duration) +
+		" stt=" + std::to_string(m_earliest_start_time) +
+		" pri=" + std::to_string(m_priority);
 }
 
 JOB_QUEUE::JOB_QUEUE()
@@ -97,21 +130,20 @@ JOB_QUEUE::JOB_QUEUE()
 
 void JOB_QUEUE::add_job(const JOB_ENTRY & job)
 {
+	JOB_Q_ENTRY new_entry(job);
+
 	bool debug = false;
-	bool no_ordering = false;
 	if (debug) std::cout << "Queuing job " << job.get_name() << std::endl;
-	auto iter = m_jobs.begin();
-	for (; iter != m_jobs.end(); ++iter)
-	{
-		if (no_ordering ? false : l_job_queue_order_less_than(job, *iter))
-		{
-			break;
-		}
-	}
-	m_jobs.insert(iter, job);
+	auto iter = std::upper_bound(
+		m_jobs.begin(), m_jobs.end(), new_entry,
+		[](const JOB_Q_ENTRY & lhs, const JOB_Q_ENTRY & rhs) {
+			return bool(l_job_queue_order_less_than(lhs.get(), rhs.get()));
+		});
+	m_jobs.insert(iter, std::move(new_entry));
 }
 
-void JOB_QUEUE::erase(ITER job_iter)
+
+void JOB_QUEUE::erase(JOB_QUEUE::ITER job_iter)
 {
 	m_jobs.erase(job_iter);
 }

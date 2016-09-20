@@ -19,6 +19,7 @@ namespace
 
 JOBQ_ITER l_pick_best_job_to_execute()
 {
+	#pragma message "TODO: Look through more than one jobs"
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(job_q.begin() != job_q.end());
 	WORKERS::WORKER_MGR::get_inst().get_eta(job_q.begin()->get());
@@ -32,8 +33,8 @@ void l_dispatch(JOBQ_ITER jobq_iter)
 	assert(jobq_iter != job_q.cend());
 	const JOBS::JOB_ENTRY & job = jobq_iter->get();
 	//std::cout << "Dispatching job " << job.to_string() << std::endl;
-	job_q.erase(jobq_iter); // TODO
 	WORKERS::WORKER_MGR::get_inst().submit_job(job);
+	job_q.erase(jobq_iter);
 }
 
 } // End anonymous namespace

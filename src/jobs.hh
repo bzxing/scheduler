@@ -16,6 +16,28 @@ typedef std::string JOB_NAME;
 typedef size_t PRIORITY;
 typedef size_t TIME;
 
+class JOB_STATUS
+{
+public:
+	JOB_STATUS() = default;
+	JOB_STATUS(const JOB_STATUS &) = delete;
+	JOB_STATUS(JOB_STATUS &&) = default;
+	JOB_STATUS & operator=(const JOB_STATUS &) = delete;
+	JOB_STATUS & operator=(JOB_STATUS &&) = delete;
+	~JOB_STATUS() = default;
+
+	bool submitted() const;
+	TIME get_start_time() const;
+	TIME get_complete_time() const;
+
+	void set_as_submitted(TIME start, TIME end);
+
+private:
+	bool m_submitted = false;
+	TIME m_start_time = 0;
+	TIME m_complete_time = 0;
+};
+
 
 class JOB_ENTRY
 {
@@ -30,6 +52,7 @@ public:
 	JOB_ENTRY(JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
 		TIME earliest_start_time, TIME subtask_duration);
 
+	const JOB_STATUS & get_status() const;
 	const JOB_NAME & get_name() const;
 	PRIORITY get_priority() const;
 	size_t get_num_subtasks() const;
@@ -39,6 +62,7 @@ public:
 	std::string to_string() const;
 
 private:
+	JOB_STATUS m_status;
 	JOB_NAME m_name;
 	PRIORITY m_priority;
 	size_t m_num_subtasks;
@@ -50,7 +74,8 @@ private:
 class JOB_QUEUE
 {
 private:
-	typedef std::list<std::reference_wrapper<const JOB_ENTRY>> CONTAINER;
+	typedef std::reference_wrapper<const JOB_ENTRY> JOB_Q_ENTRY;
+	typedef std::list<JOB_Q_ENTRY> CONTAINER;
 public:
 	typedef CONTAINER::iterator ITER;
 	typedef CONTAINER::const_iterator CITER;

@@ -12,17 +12,18 @@ namespace WORKERS
 
 typedef std::string WORKER_NAME;
 
-class EXEC_HISTORY_ENTRY
+
+class SUBTASK
 {
 public:
-	EXEC_HISTORY_ENTRY() = delete;
-	EXEC_HISTORY_ENTRY(const EXEC_HISTORY_ENTRY &) = delete;
-	EXEC_HISTORY_ENTRY(EXEC_HISTORY_ENTRY &&) = default;
-	EXEC_HISTORY_ENTRY & operator=(const EXEC_HISTORY_ENTRY &) = delete;
-	EXEC_HISTORY_ENTRY & operator=(EXEC_HISTORY_ENTRY &&) = delete;
-	~EXEC_HISTORY_ENTRY() = default;
+	SUBTASK() = delete;
+	SUBTASK(const SUBTASK &) = default;
+	SUBTASK(SUBTASK &&) = default;
+	SUBTASK & operator=(const SUBTASK &) = delete;
+	SUBTASK & operator=(SUBTASK &&) = delete;
+	~SUBTASK() = default;
 
-	EXEC_HISTORY_ENTRY(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time);
+	SUBTASK(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time);
 
 	JOBS::TIME get_start_time() const;
 	JOBS::TIME get_complete_time() const; // Defined to be overlapped with next job start time
@@ -37,61 +38,67 @@ private:
 };
 
 
-class WORKER_ENTRY
+class WORKER
 {
-private:
-	typedef std::list<EXEC_HISTORY_ENTRY> EXEC_HISTORY;
-	typedef EXEC_HISTORY::const_iterator CITER;
 public:
-	WORKER_ENTRY() = delete;
-	WORKER_ENTRY(const WORKER_ENTRY &) = delete;
-	WORKER_ENTRY(WORKER_ENTRY &&) = default;
-	WORKER_ENTRY & operator=(const WORKER_ENTRY &) = delete;
-	WORKER_ENTRY & operator=(WORKER_ENTRY &&) = delete;
-	~WORKER_ENTRY() = default;
+	typedef std::list<SUBTASK> SUBTASK_CONTAINER;
+	typedef WORKER::SUBTASK_CONTAINER::iterator SUBTASK_ITER;
+	typedef WORKER::SUBTASK_CONTAINER::const_iterator SUBTASK_CITER;
 
-	WORKER_ENTRY(WORKER_NAME && name);
+	// Implicit xtors
+	WORKER() = delete;
+	WORKER(const WORKER &) = delete;
+	WORKER(WORKER &&) = default;
+	WORKER & operator=(const WORKER &) = delete;
+	WORKER & operator=(WORKER &&) = delete;
+	~WORKER() = default;
 
+	// Custom ctors
+	WORKER(WORKER_NAME && name);
+
+	// Getters
 	const WORKER_NAME & get_name() const;
-	CITER cbegin() const;
-	CITER cend() const;
-	const EXEC_HISTORY & get_history() const;
-
-	CITER insert_job_at_earliest_possible_slot(const JOBS::JOB_ENTRY & job);
-
+	SUBTASK_CITER cbegin() const;
+	SUBTASK_CITER cend() const;
+	const SUBTASK_CONTAINER & get_history() const;
 	bool execution_history_is_legal() const;
+	SUBTASK try_submit_subtask(const JOBS::JOB_ENTRY & job) const;
 
-	friend std::ostream & operator<<(std::ostream & os, const WORKER_ENTRY & worker);
+	// Modifiers
+	SUBTASK_CITER submit_subtask(const JOBS::JOB_ENTRY & job);
+
+	// Friends
+	friend std::ostream & operator<<(std::ostream & os, const WORKER & worker);
 
 private:
 	WORKER_NAME m_name;
-	EXEC_HISTORY m_exec_hist;
+	SUBTASK_CONTAINER m_exec_hist;
 };
-std::ostream & operator<<(std::ostream & os, const WORKER_ENTRY & worker);
+std::ostream & operator<<(std::ostream & os, const WORKER & worker);
 
 class WORKER_MGR
 {
 private:
-	typedef std::vector<WORKER_ENTRY> WORKER_CONTAINER;
+	typedef std::vector<WORKER> WORKER_CONTAINER;
 public:
-	typedef WORKER_CONTAINER::iterator ITER;
-	typedef WORKER_CONTAINER::const_iterator CITER;
+	typedef WORKER_CONTAINER::iterator WORKER_ITER;
+	typedef WORKER_CONTAINER::const_iterator WORKER_CITER;
 
 	WORKER_MGR & operator=(const WORKER_MGR &) = delete;
 	WORKER_MGR & operator=(WORKER_MGR &&) = delete;
 
-	void add_worker(WORKER_ENTRY && worker);
+	void add_worker(WORKER && worker);
 	void submit_job(const JOBS::JOB_ENTRY & job);
 	JOBS::TIME get_eta(const JOBS::JOB_ENTRY & job);
 
-	ITER begin();
-	ITER end();
+	WORKER_ITER begin();
+	WORKER_ITER end();
 
 	size_t size() const;
 	bool empty() const;
 
-	CITER cbegin() const;
-	CITER cend() const;
+	WORKER_CITER cbegin() const;
+	WORKER_CITER cend() const;
 
 	bool execution_history_is_legal() const;
 	void verify_execution_history_is_legal() const;
