@@ -98,11 +98,12 @@ JOB_QUEUE::JOB_QUEUE()
 void JOB_QUEUE::add_job(const JOB_ENTRY & job)
 {
 	bool debug = false;
+	bool no_ordering = false;
 	if (debug) std::cout << "Queuing job " << job.get_name() << std::endl;
 	auto iter = m_jobs.begin();
 	for (; iter != m_jobs.end(); ++iter)
 	{
-		if (l_job_queue_order_less_than(job, *iter))
+		if (no_ordering ? false : l_job_queue_order_less_than(job, *iter))
 		{
 			break;
 		}

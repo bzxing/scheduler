@@ -65,24 +65,37 @@ WORKER_ENTRY::CITER WORKER_ENTRY::cend() const
 
 WORKER_ENTRY::CITER WORKER_ENTRY::insert_job_at_earliest_possible_slot(const JOBS::JOB_ENTRY & job)
 {
-	auto iter = m_exec_hist.cbegin();
 	JOBS::TIME prev_complete_time = 0;
+	const JOBS::TIME earliest_start = job.get_earliest_start_time();
 
-	for (; iter != m_exec_hist.cend(); ++iter)
+	// Find the right hole of right size where the job should be inserted.
+	for (auto iter = m_exec_hist.cbegin(); iter != m_exec_hist.cend(); ++iter)
 	{
-		JOBS::TIME next_start_time = iter->get_start_time();
-		assert(next_start_time >= prev_complete_time);
-		JOBS::TIME idle_window = next_start_time - prev_complete_time;
+		assert(iter->get_start_time() >= prev_complete_time);
+
+		JOBS::TIME hole_end = iter->get_start_time();
+		JOBS::TIME clamped_hole_start = std::max(prev_complete_time, earliest_start);
+
+		prev_complete_time = iter->get_complete_time();
+
+		if (clamped_hole_start > hole_end)
+		{
+			// Clamped by earliest_start that's after the hole
+			continue;
+		}
+
+		JOBS::TIME hole_size = hole_end - clamped_hole_start;
+
 		// Calculate the "would-be" start and end time for new job
-		if (job.get_subtask_duration() <= idle_window)// can fit into the hole
+		if (job.get_subtask_duration() <= hole_size)// can fit into the hole
 		{
 			// This is the right hole
-			break;
+			return m_exec_hist.emplace(iter, job, clamped_hole_start);
 		}
-		prev_complete_time = iter->get_complete_time();
 	}
 
-	return m_exec_hist.emplace(iter, job, prev_complete_time);
+	// No hole works. Put it at the end of list.
+	return m_exec_hist.emplace(m_exec_hist.cend(), job, std::max(earliest_start, prev_complete_time));
 }
 
 bool WORKER_ENTRY::execution_history_is_legal() const
@@ -90,7 +103,8 @@ bool WORKER_ENTRY::execution_history_is_legal() const
 	JOBS::TIME prev_complete_time = 0;
 	for (const auto & entry: m_exec_hist)
 	{
-		if (entry.get_start_time() < prev_complete_time)
+		if (entry.get_start_time() < prev_complete_time ||
+			entry.get_start_time() < entry.get_job().get_earliest_start_time())
 		{
 			return false;
 		}
