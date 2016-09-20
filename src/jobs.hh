@@ -53,6 +53,7 @@ public:
 		TIME earliest_start_time, TIME subtask_duration);
 
 	const JOB_STATUS & get_status() const;
+	JOB_STATUS & get_modifiable_status();
 	const JOB_NAME & get_name() const;
 	PRIORITY get_priority() const;
 	size_t get_num_subtasks() const;
@@ -74,7 +75,7 @@ private:
 class JOB_QUEUE
 {
 private:
-	typedef std::reference_wrapper<const JOB_ENTRY> JOB_Q_ENTRY;
+	typedef std::reference_wrapper<JOB_ENTRY> JOB_Q_ENTRY;
 	typedef std::list<JOB_Q_ENTRY> CONTAINER;
 public:
 	typedef CONTAINER::iterator ITER;
@@ -106,7 +107,7 @@ private:
 	JOB_QUEUE(JOB_QUEUE &&) = delete;
 	~JOB_QUEUE() = default;
 
-	void add_job(const JOB_ENTRY & job);
+	void add_job(JOB_ENTRY & job);
 
 	CONTAINER m_jobs;
 
@@ -117,6 +118,7 @@ class PARSED_JOBS
 {
 private:
 	typedef std::vector<JOB_ENTRY> CONTAINER;
+	typedef CONTAINER::iterator ITER;
 public:
 	typedef CONTAINER::const_iterator CITER;
 
@@ -130,6 +132,8 @@ public:
 
 	CITER cbegin() const;
 	CITER cend() const;
+	ITER begin();
+	ITER end();
 
 	friend std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & job_q);
 

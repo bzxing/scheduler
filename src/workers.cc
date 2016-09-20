@@ -161,7 +161,7 @@ void WORKER_MGR::add_worker(WORKER && worker)
 	m_workers.push_back(std::move(worker));
 }
 
-void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job)
+void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status)
 {
 	assert(!empty());
 	SUBMISSION_LIST submission_list;
@@ -187,8 +187,8 @@ void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job)
 		end_time = std::max(end_time, subtask_citer->get_complete_time());
 	}
 	// Done submission. Now register job as submitted and mark start and end time.
-	// job_status.set_as_submitted(start_time, end_time);
-	#pragma message "TODO: Mark job final start & completion time"
+	job_status.set_as_submitted(start_time, end_time);
+	#pragma message "TODO: compress start time when possible"
 }
 
 JOBS::TIME WORKER_MGR::get_eta(const JOBS::JOB_ENTRY & job)

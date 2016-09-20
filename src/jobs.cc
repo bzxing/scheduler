@@ -90,6 +90,11 @@ const JOB_STATUS & JOB_ENTRY::get_status() const
 	return m_status;
 }
 
+JOB_STATUS & JOB_ENTRY::get_modifiable_status()
+{
+	return m_status;
+}
+
 PRIORITY JOB_ENTRY::get_priority() const
 {
 	return m_priority;
@@ -112,23 +117,33 @@ TIME JOB_ENTRY::get_subtask_duration() const
 
 std::string JOB_ENTRY::to_string() const
 {
-	return m_name + " sub=" + std::to_string(m_num_subtasks) +
-		" dur=" + std::to_string(m_subtask_duration) +
-		" stt=" + std::to_string(m_earliest_start_time) +
-		" pri=" + std::to_string(m_priority);
+	bool submitted = get_status().submitted();
+	std::string output = m_name;
+	output += " stsk=" + std::to_string(m_num_subtasks);
+	output += " dur=" + std::to_string(m_subtask_duration);
+	output += " erl=" + std::to_string(m_earliest_start_time);
+	output += " pri=" + std::to_string(m_priority);
+	output += " sbmt=" + std::to_string(submitted);
+	if (submitted)
+	{
+		output += " start=" + std::to_string(get_status().get_start_time());
+		output += " end=" + std::to_string(get_status().get_complete_time());
+	}
+	return output;
+
 }
 
 JOB_QUEUE::JOB_QUEUE()
 {
-	const PARSED_JOBS & parsed_jobs = PARSED_JOBS::get_inst();
+	PARSED_JOBS & parsed_jobs = PARSED_JOBS::get_inst();
 	assert(!parsed_jobs.empty());
-	for (auto iter = parsed_jobs.cbegin(); iter != parsed_jobs.cend(); ++iter)
+	for (auto iter = parsed_jobs.begin(); iter != parsed_jobs.end(); ++iter)
 	{
 		add_job(*iter);
 	}
 }
 
-void JOB_QUEUE::add_job(const JOB_ENTRY & job)
+void JOB_QUEUE::add_job(JOB_ENTRY & job)
 {
 	JOB_Q_ENTRY new_entry(job);
 
@@ -240,6 +255,16 @@ PARSED_JOBS::CITER PARSED_JOBS::cbegin() const
 PARSED_JOBS::CITER PARSED_JOBS::cend() const
 {
 	return m_jobs.cend();
+}
+
+PARSED_JOBS::ITER PARSED_JOBS::begin()
+{
+	return m_jobs.begin();
+}
+
+PARSED_JOBS::ITER PARSED_JOBS::end()
+{
+	return m_jobs.end();
 }
 
 PARSED_JOBS & PARSED_JOBS::get_inst()

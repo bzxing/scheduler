@@ -88,7 +88,7 @@ public:
 	WORKER_MGR & operator=(WORKER_MGR &&) = delete;
 
 	void add_worker(WORKER && worker);
-	void submit_job(const JOBS::JOB_ENTRY & job);
+	void submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status);
 	JOBS::TIME get_eta(const JOBS::JOB_ENTRY & job);
 
 	WORKER_ITER begin();

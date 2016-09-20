@@ -31,9 +31,9 @@ void l_dispatch(JOBQ_ITER jobq_iter)
 {
 	JOB_QUEUE & job_q = JOB_QUEUE::get_inst();
 	assert(jobq_iter != job_q.cend());
-	const JOBS::JOB_ENTRY & job = jobq_iter->get();
+	JOBS::JOB_ENTRY & job = jobq_iter->get();
 	//std::cout << "Dispatching job " << job.to_string() << std::endl;
-	WORKERS::WORKER_MGR::get_inst().submit_job(job);
+	WORKERS::WORKER_MGR::get_inst().submit_job(job, job.get_modifiable_status());
 	job_q.erase(jobq_iter);
 }
 
@@ -54,10 +54,12 @@ void dispatch_all()
 		JOBQ_ITER best_job = l_pick_best_job_to_execute();
 		l_dispatch(best_job);
 	}
-	std::cout << "Done dispatching! Here's the result: \n";
+	std::cout << "Done dispatching! Here's the subtask history on each machine: \n";
 	std::cout << worker_mgr;
 	assert(worker_mgr.execution_history_is_legal());
-	std::cout << "Dispatching big success!\n";
+	std::cout << "Here's the overall job status:\n";
+	std::cout << JOBS::PARSED_JOBS::get_inst();
+	std::cout << "Goodbye!\n";
 }
 
 
