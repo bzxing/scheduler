@@ -1,5 +1,6 @@
 
 #include "jobs.hh"
+#include "workers.hh"
 
 #include <algorithm>
 #include <iostream>
@@ -10,7 +11,7 @@ namespace JOBS
 
 // Global Variabl Declarations /////////////////////////////////////////////////////////////////////
 JOB_QUEUE * JOB_QUEUE::m_job_queue_inst = nullptr;
-PARSED_JOBS * PARSED_JOBS::m_instance = nullptr;
+JOB_POOL * JOB_POOL::m_instance = nullptr;
 
 // Anonymous Namesoace /////////////////////////////////////////////////////////////////////////////
 namespace
@@ -42,40 +43,66 @@ bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 
 // Class Routines //////////////////////////////////////////////////////////////////////////////////
 
+JOB_STATUS::JOB_STATUS(JOB_IDX parent_job_idx)
+:m_job_idx(parent_job_idx)
+{
+	reset();
+}
+
+const JOB_ENTRY & JOB_STATUS::get_job() const
+{
+	JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
+	assert(m_job_idx < job_pool.size());
+	return job_pool[m_job_idx];
+}
+
+void JOB_STATUS::reset()
+{
+	m_start_time = std::numeric_limits<JOBS::TIME>::max();
+	m_complete_time = std::numeric_limits<JOBS::TIME>::min();
+	m_subtasks.clear();
+}
+
 bool JOB_STATUS::submitted() const
 {
-	return m_submitted;
+	//std::cout << get_job().to_string() << std::endl;
+	assert(get_job().get_num_subtasks() > 0);
+	return m_subtasks.size() == get_job().get_num_subtasks();
+}
+
+bool JOB_STATUS::is_clean() const
+{
+	return m_subtasks.empty();
 }
 
 TIME JOB_STATUS::get_start_time() const
 {
-	assert(submitted());
 	return m_start_time;
 }
 
 TIME JOB_STATUS::get_complete_time() const
 {
-	assert(submitted());
 	return m_complete_time;
 }
 
-void JOB_STATUS::set_as_submitted(TIME start, TIME end)
+void JOB_STATUS::add_subtask(const WORKERS::SUBTASK & subtask)
 {
-	assert(!submitted());
-	assert(end > start);
-	m_submitted = true;
-	m_start_time = start;
-	m_complete_time = end;
+	m_subtasks.push_back(subtask);
+	assert(m_subtasks.size() <= get_job().get_num_subtasks());
+	m_start_time = std::min(m_start_time, subtask.get_start_time());
+	m_complete_time = std::max(m_complete_time, subtask.get_complete_time());
 }
 
 
 JOB_ENTRY::JOB_ENTRY
 (
 	JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
-	TIME earliest_start_time, TIME subtask_duration
+	TIME earliest_start_time, TIME subtask_duration, JOB_IDX idx
 ) :
-	m_name(std::move(name)), m_priority(pri), m_num_subtasks(num_subtasks),
-	m_earliest_start_time(earliest_start_time), m_subtask_duration(subtask_duration)
+	m_status(idx), m_name(std::move(name)), m_priority(pri), m_num_subtasks(num_subtasks),
+	m_earliest_start_time(earliest_start_time), m_subtask_duration(subtask_duration),
+	m_idx(idx)
+
 {
 
 }
@@ -118,10 +145,11 @@ TIME JOB_ENTRY::get_subtask_duration() const
 std::string JOB_ENTRY::to_string() const
 {
 	bool submitted = get_status().submitted();
-	std::string output = m_name;
-	output += " stsk=" + std::to_string(m_num_subtasks);
+	std::string output;
+	output += "#" + std::to_string(m_idx) + " " + m_name;
+	output += " sbtk=" + std::to_string(m_num_subtasks);
 	output += " dur=" + std::to_string(m_subtask_duration);
-	output += " erl=" + std::to_string(m_earliest_start_time);
+	output += " erly=" + std::to_string(m_earliest_start_time);
 	output += " pri=" + std::to_string(m_priority);
 	output += " sbmt=" + std::to_string(submitted);
 	if (submitted)
@@ -135,7 +163,7 @@ std::string JOB_ENTRY::to_string() const
 
 JOB_QUEUE::JOB_QUEUE()
 {
-	PARSED_JOBS & parsed_jobs = PARSED_JOBS::get_inst();
+	JOB_POOL & parsed_jobs = JOB_POOL::get_inst();
 	assert(!parsed_jobs.empty());
 	for (auto iter = parsed_jobs.begin(); iter != parsed_jobs.end(); ++iter)
 	{
@@ -201,7 +229,7 @@ void JOB_QUEUE::load()
 	if (debug) std::cout << "Loading up job queue...\n";
 
 	assert(m_job_queue_inst == nullptr);
-	assert(!PARSED_JOBS::get_inst().empty());
+	assert(!JOB_POOL::get_inst().empty());
 	m_job_queue_inst = new JOB_QUEUE;
 	assert(m_job_queue_inst != nullptr);
 	assert(!m_job_queue_inst->empty());
@@ -230,53 +258,53 @@ std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q)
 	return os;
 }
 
-void PARSED_JOBS::add_job(JOB_ENTRY && job)
+void JOB_POOL::add_job(JOB_ENTRY && job)
 {
 	bool debug = true;
 	if (debug) std::cout << "Parsed job from input: " << job.get_name() << std::endl;
 	m_jobs.push_back(std::move(job));
 }
 
-bool PARSED_JOBS::empty() const
+bool JOB_POOL::empty() const
 {
 	return m_jobs.empty();
 }
 
-size_t PARSED_JOBS::size() const
+size_t JOB_POOL::size() const
 {
 	return m_jobs.size();
 }
 
-PARSED_JOBS::CITER PARSED_JOBS::cbegin() const
+JOB_POOL::CITER JOB_POOL::cbegin() const
 {
 	return m_jobs.cbegin();
 }
 
-PARSED_JOBS::CITER PARSED_JOBS::cend() const
+JOB_POOL::CITER JOB_POOL::cend() const
 {
 	return m_jobs.cend();
 }
 
-PARSED_JOBS::ITER PARSED_JOBS::begin()
+JOB_POOL::ITER JOB_POOL::begin()
 {
 	return m_jobs.begin();
 }
 
-PARSED_JOBS::ITER PARSED_JOBS::end()
+JOB_POOL::ITER JOB_POOL::end()
 {
 	return m_jobs.end();
 }
 
-PARSED_JOBS & PARSED_JOBS::get_inst()
+JOB_POOL & JOB_POOL::get_inst()
 {
 	if (m_instance == nullptr)
 	{
-		m_instance = new PARSED_JOBS;
+		m_instance = new JOB_POOL;
 	}
 	return *m_instance;
 }
 
-std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & jobs)
+std::ostream & operator<<(std::ostream & os, const JOB_POOL & jobs)
 {
 	for (auto iter = jobs.cbegin(); iter != jobs.cend(); ++iter)
 	{

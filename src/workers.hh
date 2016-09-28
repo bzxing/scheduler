@@ -12,6 +12,7 @@ namespace WORKERS
 
 typedef std::string WORKER_NAME;
 
+class WORKER;
 
 class SUBTASK
 {
@@ -23,7 +24,7 @@ public:
 	SUBTASK & operator=(SUBTASK &&) = delete;
 	~SUBTASK() = default;
 
-	SUBTASK(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time);
+	SUBTASK(const JOBS::JOB_ENTRY & job, const WORKER & worker, JOBS::TIME start_time);
 
 	JOBS::TIME get_start_time() const;
 	JOBS::TIME get_complete_time() const; // Defined to be overlapped with next job start time
@@ -32,7 +33,9 @@ public:
 	std::string to_string() const;
 
 private:
+	#pragma message "TODO: dangerous using refs. Should use indices."
 	const JOBS::JOB_ENTRY & m_job;
+	const WORKER & m_worker;
 	JOBS::TIME m_start_time;
 
 };
@@ -44,6 +47,7 @@ public:
 	typedef std::list<SUBTASK> SUBTASK_CONTAINER;
 	typedef WORKER::SUBTASK_CONTAINER::iterator SUBTASK_ITER;
 	typedef WORKER::SUBTASK_CONTAINER::const_iterator SUBTASK_CITER;
+	typedef size_t WORKER_IDX;
 
 	// Implicit xtors
 	WORKER() = delete;
@@ -54,10 +58,11 @@ public:
 	~WORKER() = default;
 
 	// Custom ctors
-	WORKER(WORKER_NAME && name);
+	WORKER(WORKER_NAME && name, WORKER_IDX idx);
 
 	// Getters
 	const WORKER_NAME & get_name() const;
+	WORKER_IDX get_index() const;
 	SUBTASK_CITER cbegin() const;
 	SUBTASK_CITER cend() const;
 	const SUBTASK_CONTAINER & get_history() const;
@@ -65,16 +70,20 @@ public:
 	SUBTASK try_submit_subtask(const JOBS::JOB_ENTRY & job) const;
 
 	// Modifiers
-	SUBTASK_CITER submit_subtask(const JOBS::JOB_ENTRY & job);
+	SUBTASK_ITER submit_subtask(const JOBS::JOB_ENTRY & job);
+	void remove_subtask(SUBTASK_ITER subtask_iter);
 
 	// Friends
 	friend std::ostream & operator<<(std::ostream & os, const WORKER & worker);
 
 private:
 	WORKER_NAME m_name;
+	WORKER_IDX m_idx;
 	SUBTASK_CONTAINER m_exec_hist;
 };
+
 std::ostream & operator<<(std::ostream & os, const WORKER & worker);
+
 
 class WORKER_MGR
 {
@@ -89,7 +98,7 @@ public:
 
 	void add_worker(WORKER && worker);
 	void submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status);
-	JOBS::TIME get_eta(const JOBS::JOB_ENTRY & job);
+	JOBS::JOB_STATUS get_projected_job_status(const JOBS::JOB_ENTRY & job);
 
 	WORKER_ITER begin();
 	WORKER_ITER end();
@@ -112,6 +121,8 @@ private:
 	WORKER_MGR(const WORKER_MGR &) = delete;
 	WORKER_MGR(WORKER_MGR &&) = delete;
 	~WORKER_MGR() = default;
+
+	void try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status, bool revert_after_trying);
 
 	WORKER_CONTAINER m_workers;
 

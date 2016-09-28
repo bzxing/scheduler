@@ -4,7 +4,6 @@
 #include <string>
 #include <iostream>
 #include <cassert>
-#include <limits>
 #include <algorithm>
 
 namespace WORKERS
@@ -64,8 +63,8 @@ find_earliest_subtask_insertion_slot_and_start_time(
 
 } // End anonymous namespace
 
-SUBTASK::SUBTASK(const JOBS::JOB_ENTRY & job, JOBS::TIME start_time)
-: m_job(job), m_start_time(start_time)
+SUBTASK::SUBTASK(const JOBS::JOB_ENTRY & job, const WORKER & worker, JOBS::TIME start_time)
+: m_job(job), m_worker(worker), m_start_time(start_time)
 {
 	assert(m_start_time >= m_job.get_earliest_start_time());
 	assert(m_job.get_subtask_duration() > 0);
@@ -106,10 +105,10 @@ WORKER::SUBTASK_CITER WORKER::cend() const
 	return m_exec_hist.cend();
 }
 
-WORKER::SUBTASK_CITER WORKER::submit_subtask(const JOBS::JOB_ENTRY & job)
+WORKER::SUBTASK_ITER WORKER::submit_subtask(const JOBS::JOB_ENTRY & job)
 {
 	auto iter_time_pair = find_earliest_subtask_insertion_slot_and_start_time(job, m_exec_hist);
-	return m_exec_hist.emplace(iter_time_pair.first, job, iter_time_pair.second);
+	return m_exec_hist.emplace(iter_time_pair.first, job, *this, iter_time_pair.second);
 }
 
 // Ruturn a copy of how the subtask would look like (start and complete time) if it were submitted,
@@ -117,7 +116,7 @@ WORKER::SUBTASK_CITER WORKER::submit_subtask(const JOBS::JOB_ENTRY & job)
 SUBTASK WORKER::try_submit_subtask(const JOBS::JOB_ENTRY & job) const
 {
 	auto iter_time_pair = find_earliest_subtask_insertion_slot_and_start_time(job, m_exec_hist);
-	return SUBTASK(job, iter_time_pair.second);
+	return SUBTASK(job, *this, iter_time_pair.second);
 }
 
 bool WORKER::execution_history_is_legal() const
@@ -134,9 +133,14 @@ bool WORKER::execution_history_is_legal() const
 	return true;
 }
 
+WORKER::WORKER_IDX WORKER::get_index() const
+{
+	return m_idx;
+}
+
 std::ostream & operator<<(std::ostream & os, const WORKER & worker)
 {
-	os << "Worker " << worker.get_name() << " execution history: \n";
+	os << "Worker #" << worker.m_idx << " " << worker.get_name() << " execution history: \n";
 	for (const SUBTASK & hist_entry: worker.m_exec_hist)
 	{
 		os << "  " << hist_entry.to_string() << std::endl;
@@ -144,8 +148,8 @@ std::ostream & operator<<(std::ostream & os, const WORKER & worker)
 	return os;
 }
 
-WORKER::WORKER(WORKER_NAME && name)
-: m_name(std::move(name))
+WORKER::WORKER(WORKER_NAME && name, WORKER_IDX idx)
+: m_name(std::move(name)), m_idx(idx)
 {
 
 }
@@ -155,19 +159,33 @@ const WORKER_NAME & WORKER::get_name() const
 	return m_name;
 }
 
+void WORKER::remove_subtask(SUBTASK_ITER subtask_iter)
+{
+	m_exec_hist.erase(subtask_iter);
+}
+
 void WORKER_MGR::add_worker(WORKER && worker)
 {
-	std::cout << "Hello worker " << worker.get_name() << std::endl;
+	std::cout << "Hello worker #" << worker.get_index() << " " << worker.get_name() << std::endl;
 	m_workers.push_back(std::move(worker));
 }
 
-void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status)
+
+
+// This is the actual submission algorithm that schedules subtasks across all machines.
+// job_status will be updated to reflect the start & end time for all subtasks, no matter whether
+// revert_after_trying is on or off.
+#pragma message "TODO: Compress start time when possible. QoR measurement"
+void WORKER_MGR::try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status, bool revert_after_trying)
 {
 	assert(!empty());
-	SUBMISSION_LIST submission_list;
-	//std::cout << "Workers accepting job: " << job.to_string() << std::endl;
-	JOBS::TIME start_time = std::numeric_limits<JOBS::TIME>::max();
-	JOBS::TIME end_time = std::numeric_limits<JOBS::TIME>::min();
+	assert(job_status.is_clean());
+	job_status.reset();
+
+	// If revert_after_trying == true, this vector is used to memorize submissions, and revert them
+	// in the end. Useful when just want to check out the ETA of a job without submitting anything.
+	std::vector<std::pair<WORKER_ITER, WORKER::SUBTASK_ITER>> submitted_subtasks;
+
 	for (size_t i_subtask = 0; i_subtask < job.get_num_subtasks(); ++i_subtask)
 	{
 		// Pick worker with best completion time
@@ -182,20 +200,37 @@ void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_
 		);
 
 		// Submit it
-		WORKER::SUBTASK_CITER subtask_citer = best_worker_iter->submit_subtask(job);
-		start_time = std::min(start_time, subtask_citer->get_start_time());
-		end_time = std::max(end_time, subtask_citer->get_complete_time());
+		WORKER::SUBTASK_ITER subtask_iter = best_worker_iter->submit_subtask(job);
+		job_status.add_subtask(*subtask_iter);
+
+		if (revert_after_trying)
+		{
+			submitted_subtasks.push_back(std::make_pair(best_worker_iter, subtask_iter));
+		}
 	}
-	// Done submission. Now register job as submitted and mark start and end time.
-	job_status.set_as_submitted(start_time, end_time);
-	#pragma message "TODO: compress start time when possible"
+
+	if (revert_after_trying)
+	{
+		for (const auto & worker_subtask_iter_pair: submitted_subtasks)
+		{
+			worker_subtask_iter_pair.first->remove_subtask(worker_subtask_iter_pair.second);
+		}
+	}
+
+	assert(job_status.submitted());
 }
 
-JOBS::TIME WORKER_MGR::get_eta(const JOBS::JOB_ENTRY & job)
+void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status)
 {
-	assert(&job);
-	#pragma message "TODO: get job ETA"
-	return 0;
+	try_submit_job(job, job_status, false);
+}
+
+
+JOBS::JOB_STATUS WORKER_MGR::get_projected_job_status(const JOBS::JOB_ENTRY & job)
+{
+	JOBS::JOB_STATUS projected_status(job.get_index());
+	try_submit_job(job, projected_status, true);
+	return projected_status;
 }
 
 WORKER_MGR::WORKER_ITER WORKER_MGR::begin()

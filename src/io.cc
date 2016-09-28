@@ -17,7 +17,7 @@ namespace IO
 namespace
 {
 
-JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line)
+JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line, JOBS::JOB_IDX idx )
 {
 	std::regex regex("(\\w+) (\\w+) (\\d+) (\\d+) (\\d+) (\\d+)");
 	std::smatch match;
@@ -26,11 +26,11 @@ JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line)
 	assert(match.size() == 7);
 	assert(match[1] == "job");
 
-	JOBS::JOB_ENTRY job(match[2], std::stoul(match[6]), std::stoul(match[3]), std::stoul(match[5]), std::stoul(match[4]));
+	JOBS::JOB_ENTRY job(match[2], std::stoul(match[6]), std::stoul(match[3]), std::stoul(match[5]), std::stoul(match[4]), idx);
 	return job;
 }
 
-WORKERS::WORKER l_string_to_worker_entry(const std::string & line)
+WORKERS::WORKER l_string_to_worker_entry(const std::string & line, WORKERS::WORKER::WORKER_IDX idx)
 {
 	std::regex regex("(\\w+) (\\w+)");
 	std::smatch match;
@@ -39,7 +39,7 @@ WORKERS::WORKER l_string_to_worker_entry(const std::string & line)
 	assert(match.size() == 3);
 	assert(match[1] == "worker");
 
-	WORKERS::WORKER worker(match[2]);
+	WORKERS::WORKER worker(match[2], idx);
 	return worker;
 }
 
@@ -64,11 +64,15 @@ void load_from_stdin()
 
 		if (match[0] == "job")
 		{
-			JOBS::PARSED_JOBS::get_inst().add_job(l_string_to_job_entry(line));
+			JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
+			JOBS::JOB_IDX new_idx = job_pool.size();
+			job_pool.add_job(l_string_to_job_entry(line, new_idx));
 		}
 		else if (match[0] == "worker")
 		{
-			WORKERS::WORKER_MGR::get_inst().add_worker(l_string_to_worker_entry(line));
+			WORKERS::WORKER_MGR & worker_mgr = WORKERS::WORKER_MGR::get_inst();
+			WORKERS::WORKER::WORKER_IDX new_idx = worker_mgr.size();
+			worker_mgr.add_worker(l_string_to_worker_entry(line, new_idx));
 		}
 		else
 		{
@@ -79,9 +83,9 @@ void load_from_stdin()
 	}
 
 	//std::cout << "Done parsing! Here's the results:" << std::endl;
-	//std::cout << JOBS::PARSED_JOBS::get_inst();
+	//std::cout << JOBS::JOB_POOL::get_inst();
 
-	if (JOBS::PARSED_JOBS::get_inst().empty())
+	if (JOBS::JOB_POOL::get_inst().empty())
 	{
 		std::cerr << "No jobs to do. Quitting...";
 		exit(1);

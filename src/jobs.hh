@@ -8,6 +8,11 @@
 #include <list>
 #include <functional>
 
+namespace WORKERS
+{
+class SUBTASK;
+}
+
 
 namespace JOBS
 {
@@ -15,42 +20,54 @@ namespace JOBS
 typedef std::string JOB_NAME;
 typedef size_t PRIORITY;
 typedef size_t TIME;
+typedef size_t JOB_IDX;
+
+class JOB_ENTRY;
 
 class JOB_STATUS
 {
 public:
-	JOB_STATUS() = default;
+
+	JOB_STATUS() = delete;
 	JOB_STATUS(const JOB_STATUS &) = delete;
 	JOB_STATUS(JOB_STATUS &&) = default;
 	JOB_STATUS & operator=(const JOB_STATUS &) = delete;
 	JOB_STATUS & operator=(JOB_STATUS &&) = delete;
 	~JOB_STATUS() = default;
 
+	JOB_STATUS(JOB_IDX parent_job_idx);
+
+	const JOB_ENTRY & get_job() const;
+
 	bool submitted() const;
+	bool is_clean() const;
 	TIME get_start_time() const;
 	TIME get_complete_time() const;
 
-	void set_as_submitted(TIME start, TIME end);
+	void reset();
+	void add_subtask(const WORKERS::SUBTASK & subtask);
 
 private:
-	bool m_submitted = false;
-	TIME m_start_time = 0;
-	TIME m_complete_time = 0;
+	std::vector<std::reference_wrapper<const WORKERS::SUBTASK>> m_subtasks;
+	TIME m_start_time;
+	TIME m_complete_time;
+	JOB_IDX m_job_idx;
 };
 
 
 class JOB_ENTRY
 {
 public:
+
 	JOB_ENTRY() = delete;
-	JOB_ENTRY(const JOB_ENTRY &) = default;
+	JOB_ENTRY(const JOB_ENTRY &) = delete;
 	JOB_ENTRY(JOB_ENTRY &&) = default;
 	JOB_ENTRY & operator=(const JOB_ENTRY &) = delete;
 	JOB_ENTRY & operator=(JOB_ENTRY &&) = delete;
 	~JOB_ENTRY() = default;
 
 	JOB_ENTRY(JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
-		TIME earliest_start_time, TIME subtask_duration);
+		TIME earliest_start_time, TIME subtask_duration, JOB_IDX idx);
 
 	const JOB_STATUS & get_status() const;
 	JOB_STATUS & get_modifiable_status();
@@ -59,6 +76,7 @@ public:
 	size_t get_num_subtasks() const;
 	TIME get_earliest_start_time() const;
 	TIME get_subtask_duration() const;
+	JOB_IDX get_index() const {return m_idx;}
 
 	std::string to_string() const;
 
@@ -69,6 +87,7 @@ private:
 	size_t m_num_subtasks;
 	TIME m_earliest_start_time;
 	TIME m_subtask_duration;
+	JOB_IDX m_idx;
 };
 
 
@@ -95,7 +114,6 @@ public:
 	bool empty() const;
 	size_t size() const;
 
-
 	friend std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
 
 	static void load();
@@ -114,7 +132,7 @@ private:
 	static JOB_QUEUE * m_job_queue_inst;
 };
 
-class PARSED_JOBS
+class JOB_POOL
 {
 private:
 	typedef std::vector<JOB_ENTRY> CONTAINER;
@@ -122,8 +140,8 @@ private:
 public:
 	typedef CONTAINER::const_iterator CITER;
 
-	PARSED_JOBS & operator=(const PARSED_JOBS &) = delete;
-	PARSED_JOBS & operator=(PARSED_JOBS &&) = delete;
+	JOB_POOL & operator=(const JOB_POOL &) = delete;
+	JOB_POOL & operator=(JOB_POOL &&) = delete;
 
 	bool empty() const;
 	size_t size() const;
@@ -135,23 +153,25 @@ public:
 	ITER begin();
 	ITER end();
 
-	friend std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & job_q);
+	JOB_ENTRY & operator[](size_t idx) { return m_jobs[idx]; }
 
-	static PARSED_JOBS & get_inst();
+	friend std::ostream & operator<<(std::ostream & os, const JOB_POOL & job_q);
+
+	static JOB_POOL & get_inst();
 
 private:
-	PARSED_JOBS() = default;
-	PARSED_JOBS(const PARSED_JOBS &) = delete;
-	PARSED_JOBS(PARSED_JOBS &&) = delete;
-	~PARSED_JOBS() = default;
+	JOB_POOL() = default;
+	JOB_POOL(const JOB_POOL &) = delete;
+	JOB_POOL(JOB_POOL &&) = delete;
+	~JOB_POOL() = default;
 
 	CONTAINER m_jobs;
 
-	static PARSED_JOBS * m_instance;
+	static JOB_POOL * m_instance;
 };
 
 std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q);
-std::ostream & operator<<(std::ostream & os, const PARSED_JOBS & job_q);
+std::ostream & operator<<(std::ostream & os, const JOB_POOL & job_q);
 
 }
 
