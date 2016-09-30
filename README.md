@@ -100,3 +100,7 @@ WORKERS::submit_job_and_get_eta(job, test_eta_only)
     // TODO: optimize for start time (later the better) by aligning end time of all subtasks as possible.
 }
 ```
+
+## Benchmarking
+
+Current cost for t12.txt: 3.1504e+06
