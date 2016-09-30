@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <iostream>
 #include <cassert>
+#include <cmath>
+
+
 
 namespace JOBS
 {
@@ -39,6 +42,41 @@ bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 
 
 } // End anonymous namespace
+
+namespace COST_CALC
+{
+
+COST get_cost_for_job(const JOB_ENTRY & job)
+{
+	COST priority = job.get_priority();
+	COST earliest = job.get_earliest_start_time();
+	assert(job.get_status().submitted());
+	COST start = job.get_status().get_start_time();
+	COST end = job.get_status().get_complete_time();
+	assert(start < end);
+	assert(earliest <= start);
+	COST cost = priority * std::sqrt( std::pow((end - earliest), 2) + std::pow((end - start), 2) );
+	return cost;
+}
+
+COST get_total_cost()
+{
+	bool debug = true;
+	if (debug) std::cout << "Calculating total cost of jobs...\n";
+	JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
+	COST sum_cost = 0.0;
+	for (const JOB_ENTRY & job: job_pool)
+	{
+		COST cost = get_cost_for_job(job);
+		sum_cost += cost;
+		if (debug) std::cout << job.to_string() << " cost=" << cost << std::endl;
+	}
+	if (debug) std::cout << "Sum Cost: " << sum_cost << std::endl;
+	return sum_cost;
+}
+
+
+}
 
 
 // Class Routines //////////////////////////////////////////////////////////////////////////////////

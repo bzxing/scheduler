@@ -33,7 +33,7 @@ public:
 	std::string to_string() const;
 
 private:
-	#pragma message "TODO: dangerous using refs. Should use indices."
+	// TODO: dangerous using refs. Should use indices.
 	const JOBS::JOB_ENTRY & m_job;
 	const WORKER & m_worker;
 	JOBS::TIME m_start_time;

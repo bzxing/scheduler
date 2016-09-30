@@ -104,5 +104,6 @@ int main()
 	IO::load_from_stdin();
 	JOBS::JOB_QUEUE::load();
 	DISPATCHER::dispatch_all();
+	JOBS::COST_CALC::get_total_cost();
 	return 0;
 }

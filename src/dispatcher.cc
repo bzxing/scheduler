@@ -18,10 +18,10 @@ namespace
 {
 
 
-#pragma message "TODO: Look through more than one jobs. Measure QoR"
+
 JOBQ_ITER l_pick_best_job_to_execute()
 {
-	const size_t MAX_NUM_JOBS_TO_TRY = 10;
+	const size_t MAX_NUM_JOBS_TO_TRY = 5; // TODO: QoR Tuning
 
 	WORKERS::WORKER_MGR & worker_mgr = WORKERS::WORKER_MGR::get_inst();
 
@@ -39,7 +39,7 @@ JOBQ_ITER l_pick_best_job_to_execute()
 
 		float eta = worker_mgr.get_projected_job_status(job_iter->get()).get_complete_time();
 		float priority = job_iter->get().get_priority();
-		float cost = eta / priority;
+		float cost = eta / priority; // TODO: QoR Tuning
 		if (cost < smallest_cost_seen)
 		{
 			smallest_cost_seen = cost;
@@ -90,10 +90,9 @@ void dispatch_all()
 	std::cout << "Done dispatching! Here's the subtask history on each machine: \n";
 	std::cout << worker_mgr;
 	assert(worker_mgr.execution_history_is_legal());
-	#pragma message "TODO: Check all jobs are executed once and only once. Write some more checks."
-	std::cout << "Here's the overall job status:\n";
+	//TODO: Check all jobs are executed once and only once. Write some more checks.
+	std::cout << "Here's the overall job status after dispatching all:\n";
 	std::cout << JOBS::JOB_POOL::get_inst();
-	std::cout << "Goodbye!\n";
 }
 
 

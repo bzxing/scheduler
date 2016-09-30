@@ -175,7 +175,7 @@ void WORKER_MGR::add_worker(WORKER && worker)
 // This is the actual submission algorithm that schedules subtasks across all machines.
 // job_status will be updated to reflect the start & end time for all subtasks, no matter whether
 // revert_after_trying is on or off.
-#pragma message "TODO: Compress start time when possible. QoR measurement"
+
 void WORKER_MGR::try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status, bool revert_after_trying)
 {
 	assert(!empty());
@@ -218,6 +218,8 @@ void WORKER_MGR::try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & 
 	}
 
 	assert(job_status.submitted());
+
+	// TODO: Compress start time when possible. QoR measurement
 }
 
 void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status)

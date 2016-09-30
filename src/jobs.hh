@@ -24,6 +24,17 @@ typedef size_t JOB_IDX;
 
 class JOB_ENTRY;
 
+namespace COST_CALC
+{
+
+typedef float COST;
+
+COST get_cost_for_job(const JOB_ENTRY & job);
+
+COST get_total_cost();
+
+}
+
 class JOB_STATUS
 {
 public:
