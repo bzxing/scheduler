@@ -23,3 +23,8 @@ You'll write a program that generates a schedule (which robot executes which sub
 Time value, duration and priority are represented by basic unsigned integers. Define 0 as genesis.
 
 Run the python script ```//input/gen.py``` to generate random input file. To run the scheduler program, first run ```make``` under ```//src``` directory, then pipe a legal input file into it ```//src/build/bin/scheduler``` executable.
+
+## My Current Solution
+
+You'll have to read the code for now.
+
