@@ -19,7 +19,7 @@ class Job:
 """
 Generate a set of jobs and workers. There are a lot of ways to configure this
 """
-def generate_jobs(seed=None, max_jobs=15, min_jobs=5, max_tasks=100, max_task_time=40, max_can_begin_time=40, max_priority=10, max_workers=10,
+def generate_jobs(seed=None, max_jobs=200, min_jobs=50, max_tasks=100, max_task_time=50, max_can_begin_time=1000, max_priority=100,
   num_jobs=None, task_time=None, can_begin_time=None, priority=None):
   jobs=[]
 

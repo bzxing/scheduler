@@ -19,25 +19,32 @@ JOB_POOL * JOB_POOL::m_instance = nullptr;
 // Anonymous Namesoace /////////////////////////////////////////////////////////////////////////////
 namespace
 {
+// TODO: These need QoR Tuning
 
 float l_get_priority_weighted_work_load(const JOB_ENTRY & job)
 {
-	return
-		float(job.get_subtask_duration()) * float(job.get_num_subtasks()) / float(job.get_priority());
+	float subtask_duration = job.get_subtask_duration();
+	float num_subtasks = job.get_num_subtasks();
+	float num_workers = WORKERS::WORKER_MGR::get_inst().size();
+	float priority = job.get_priority();
+	float earliest = job.get_earliest_start_time();
+	float cost = ( earliest + ( std::ceil(num_subtasks / num_workers) * subtask_duration ) ) / priority;
+	return cost;
+		//float(job.get_subtask_duration()) * float(job.get_num_subtasks()) / float(job.get_priority());
 }
 
 // Ordering policy used by JOB_QUEUE. Returns true if lhs should be placed before rhs.
 bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 {
-	if (lhs.get_earliest_start_time() != rhs.get_earliest_start_time())
-	{
-		return bool(lhs.get_earliest_start_time() < rhs.get_earliest_start_time());
-	}
-	else
-	{
+	//if (lhs.get_earliest_start_time() != rhs.get_earliest_start_time())
+	//{
+	//	return bool(lhs.get_earliest_start_time() < rhs.get_earliest_start_time());
+	//}
+	//else
+	//{
 		return bool( l_get_priority_weighted_work_load(lhs) <
 			l_get_priority_weighted_work_load(rhs) );
-	}
+	//}
 }
 
 
