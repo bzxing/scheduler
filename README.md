@@ -25,7 +25,7 @@ Time value, duration and priority are represented by basic unsigned integers. De
 Run the python script ```//input/gen.py``` to generate random input file. To run the scheduler program, first run ```make``` under ```//src``` directory, then pipe a legal input file into it ```//src/build/bin/scheduler``` executable.
 
 ## My Current Solution (in C++11 like Pseudo Code)
-```
+```c++
 main () 
 {
     job_queue.load();
@@ -45,7 +45,7 @@ main ()
             {
                 return workers.submit_job_and_get_eta(job, true) / priority;
             };
-        least_cost_so_far = limits::max();
+        least_cost_so_far = numeric_limits::max();
         best_job = null;
         for (job: job_queue)
         {
@@ -66,7 +66,7 @@ main ()
 
 WORKERS::submit_job_and_get_eta(job, test_eta_only)
 {
-    job_end_time = limits::min();
+    job_end_time = numeric_limits::min();
     for (i: 0 to job.num_subtasks)
     {
         (best_worker, best_subtask_eta) = find_best_worker_and_subtask_eta(job);
