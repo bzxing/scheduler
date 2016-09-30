@@ -31,20 +31,22 @@ JOBQ_ITER l_pick_best_job_to_execute()
 	assert(job_iter != job_q.end());
 	size_t num_jobs_tried = 0;
 
-	JOBS::TIME smallest_eta_seen = std::numeric_limits<JOBS::TIME>::max();
+	float smallest_cost_seen = std::numeric_limits<float>::max();
 	JOBS::JOB_QUEUE::ITER best_job_iter;
 
 	while (job_iter != job_q.end() && num_jobs_tried < MAX_NUM_JOBS_TO_TRY)
 	{
 
-		JOBS::TIME new_eta = worker_mgr.get_projected_job_status(job_iter->get()).get_complete_time();
-		if (new_eta < smallest_eta_seen)
+		float eta = worker_mgr.get_projected_job_status(job_iter->get()).get_complete_time();
+		float priority = job_iter->get().get_priority();
+		float cost = eta / priority;
+		if (cost < smallest_cost_seen)
 		{
-			smallest_eta_seen = new_eta;
+			smallest_cost_seen = cost;
 			best_job_iter = job_iter;
 		}
 		std::cout << "Tested job " << job_iter->get().to_string()
-			<< " ETA=" << new_eta << " Best=" << smallest_eta_seen << std::endl;
+			<< " ETA=" << eta << " Cost=" << cost << " Best Cost=" << smallest_cost_seen << std::endl;
 
 		++job_iter;
 		++num_jobs_tried;
@@ -63,8 +65,8 @@ void l_dispatch(JOBQ_ITER jobq_iter)
 	auto & worker_mgr = WORKERS::WORKER_MGR::get_inst();
 	worker_mgr.submit_job(job, job.get_modifiable_status());
 	job_q.erase(jobq_iter);
-	std::cout << "Workers:\n" << worker_mgr;
-	std::cout << "Job Q:\n" << job_q;
+	//std::cout << "Workers:\n" << worker_mgr;
+	//std::cout << "Job Q:\n" << job_q;
 
 }
 
