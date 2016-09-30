@@ -68,7 +68,7 @@ main ()
                 least_cost_so_far = cost;
                 best_job = job;
             }            
-            if (cost / 5.0 > least_cost_so_far)
+            if (cost / 10.0 > least_cost_so_far)
             {
                 break;
             }
