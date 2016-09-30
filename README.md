@@ -75,6 +75,8 @@ WORKERS::submit_job_and_get_eta(job, test_eta_only)
             // of all previously executed subtasks is also counted as a hole.
         job_end_time = max(job_end_time, best_subtask_eta);
         best_worker.submit(job);
+            // This will let the worker store a list of executed subtasks, and their start & finish time.
+            // The info will be used in all future job submissions, unless reverted.
     }
     if (test_eta_only)
     {
