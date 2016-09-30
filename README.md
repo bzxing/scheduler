@@ -22,7 +22,20 @@ You'll write a program that generates a schedule (which robot executes which sub
 
 Time value, duration and priority are represented by basic unsigned integers. Define 0 as genesis.
 
-Run the python script ```//input/gen.py``` to generate random input file. To run the scheduler program, first run ```make``` under ```//src``` directory, then pipe a legal input file into it ```//src/build/bin/scheduler``` executable.
+## How to Build
+```shell
+cd ~
+git clone https://github.com/xza218/scheduler.git
+cd scheduler/src
+make -j
+```
+## How to Run (Just One Example)
+```shell
+cd ~/scheduler/src
+./build/bin/scheduler < ../input/t12.txt
+```
+
+Feel free to use/modify the python script ```//input/gen.py``` to generate your own random input file.
 
 ## My Current Solution (in C++11 like Pseudo Code)
 ```c++
