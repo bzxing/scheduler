@@ -103,5 +103,5 @@ WORKERS::submit_job_and_get_eta(job, test_eta_only)
 
 ## Benchmarking
 
-t12.txt: 3.1504e+06
-t15.txt: 6.39546e+06
+* t12.txt: 3.1504e+06
+* t15.txt: 6.39546e+06
