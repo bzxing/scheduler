@@ -1,0 +1,37 @@
+
+- To do
+
+	- Optimize for latest start time given finish time fixed!
+
+	- Collect runtime data. Time per job maybe?
+
+	- Write a class that reads in all the options
+
+- To test
+
+	- What experiments would make most sense?
+		- Lots of parameters in random test case generator
+
+	- Write some experiment & result collection mechanisms
+
+- To think
+
+	- Slower in the middle. Might be it's bad ordering starting in the middle of the queue?
+
+	- What's avg num jobs tried for each dispatch? What's a good mechanism to decide when to stop peeking into the queue?
+
+- To review
+
+	- Revisit the cost functions
+
+	- Review the submission algorithms
+
+- To refactor
+
+	- Make job pool sorted against the job queue cost functions. (then index them)
+
+	- Does namespacing everything still makes sense?
+
+	- Common class - store universally used types
+
+	- Where should we put subtasks and job status?
