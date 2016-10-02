@@ -84,6 +84,7 @@ COST get_total_cost()
 
 const JOB_ENTRY & JOB_STATUS::get_job() const
 {
+	assert(parent_set);
 	JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
 	assert(m_job_idx < job_pool.size());
 	return job_pool[m_job_idx];
@@ -96,8 +97,16 @@ void JOB_STATUS::reset()
 	m_subtasks.clear();
 }
 
+void JOB_STATUS::set_parent(JOB_IDX idx)
+{
+	assert(!parent_set);
+	m_job_idx = idx;
+	parent_set = true;
+}
+
 bool JOB_STATUS::submitted() const
 {
+	assert(parent_set);
 	//std::cout << get_job().to_string() << std::endl;
 	assert(get_job().get_num_subtasks() > 0);
 	return m_subtasks.size() == get_job().get_num_subtasks();
@@ -141,8 +150,10 @@ JOB_ENTRY::JOB_ENTRY
 
 void JOB_ENTRY::set_idx(JOB_IDX idx)
 {
+	assert(!m_id_set);
 	m_status.set_parent(idx);
 	m_idx = idx;
+	m_id_set = true;
 }
 
 const JOB_NAME & JOB_ENTRY::get_name() const
@@ -190,6 +201,7 @@ std::string JOB_ENTRY::to_string() const
 	output += " erly=" + std::to_string(m_earliest_start_time);
 	output += " pri=" + std::to_string(m_priority);
 	output += " sbmt=" + std::to_string(submitted);
+	output += " id_set=" + std::to_string(m_id_set);
 	if (submitted)
 	{
 		output += " start=" + std::to_string(get_status().get_start_time());

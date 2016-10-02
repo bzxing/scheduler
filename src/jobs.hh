@@ -56,7 +56,7 @@ public:
 	TIME get_complete_time() const;
 	JOB_IDX get_parent() {return m_job_idx;}
 
-	void set_parent(JOB_IDX idx) {m_job_idx = idx;}
+	void set_parent(JOB_IDX idx);
 	void reset();
 	void add_subtask(const WORKERS::SUBTASK & subtask);
 
@@ -74,6 +74,7 @@ private:
 	TIME m_start_time;
 	TIME m_complete_time;
 	JOB_IDX m_job_idx = 0;
+	bool parent_set = false;
 };
 
 
@@ -111,6 +112,7 @@ private:
 	TIME m_earliest_start_time;
 	TIME m_subtask_duration;
 	JOB_IDX m_idx = 0;
+	bool m_id_set = false;
 };
 
 
