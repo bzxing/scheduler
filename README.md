@@ -60,6 +60,8 @@ main ()
             };
         least_cost_so_far = numeric_limits::max();
         best_job = null;
+        num_attempts = 0;
+        stop_at = 20;
         for (job: job_queue)
         {
             cost = dispatcher_cost_func(job);
@@ -67,11 +69,13 @@ main ()
             {
                 least_cost_so_far = cost;
                 best_job = job;
+                stop_at = num_attempts + 20;
             }            
-            if (cost / 10.0 > least_cost_so_far)
+            if (num_attempts > stop_at)
             {
                 break;
             }
+            num_attempts++;
         }
         workers.submit_job_and_get_eta(best_job, false);
     }
@@ -100,8 +104,3 @@ WORKERS::submit_job_and_get_eta(job, test_eta_only)
     // TODO: optimize for start time (later the better) by aligning end time of all subtasks as possible.
 }
 ```
-
-## Benchmarking
-
-* t12.txt: 3.1504e+06
-* t15.txt: 6.39546e+06
