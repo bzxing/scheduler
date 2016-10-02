@@ -17,27 +17,6 @@ typedef JOB_QUEUE::ITER JOBQ_ITER;
 namespace
 {
 
-/*
-
-Observations:
-
-- Slower in the middle. Might be bad ordering in the middle?
-
-- Avg num jobs tried for each dispatch? What's a good mechanism to decide when to stop looking into the queue?
-
-- Optimize for latest start time given finish time fixed!
-
-- Revisit the cost functions
-
-- What experiments would make most sense?
-
-- Write some experiment & result collection infras
-
-- Review the submission algorithms
-
-- Collect runtime data. Time per job maybe?
-
-*/
 
 JOBQ_ITER l_pick_best_job_to_execute()
 {
@@ -51,6 +30,7 @@ JOBQ_ITER l_pick_best_job_to_execute()
 	JOBS::JOB_QUEUE::ITER job_iter = job_q.begin();
 	assert(job_iter != job_q.end());
 	size_t num_jobs_tried = 0;
+	size_t picked_attempt = 0;
 
 	float smallest_cost_seen = std::numeric_limits<float>::max();
 	JOBS::JOB_QUEUE::ITER best_job_iter;
@@ -66,11 +46,16 @@ JOBQ_ITER l_pick_best_job_to_execute()
 		{
 			smallest_cost_seen = cost;
 			best_job_iter = job_iter;
+			picked_attempt = num_jobs_tried;
 		}
 
-		if (cost / 10.0 > smallest_cost_seen) // TODO: QoR Tuning
+		if ( (cost / 7.0f > smallest_cost_seen) || ((float)num_jobs_tried+1 > (float)(picked_attempt+1) * 1.5f && num_jobs_tried > 40)) // TODO: QoR Tuning
 		{
 			// Not a good sign. Better give up.
+
+			// TODO: Collect the following stats:
+			//  - num_jobs_tried / picked_attempt ratio
+			//  - cost / smallest_cost_seen ratio
 			break;
 		}
 
@@ -83,6 +68,7 @@ JOBQ_ITER l_pick_best_job_to_execute()
 		++job_iter;
 		++num_jobs_tried;
 	}
+	std::cout << "Tried " << num_jobs_tried << " jobs out of " << job_q.size() << ". Picked attempt #" << picked_attempt << std::endl;
 
 	return best_job_iter;
 }

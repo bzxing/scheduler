@@ -39,14 +39,14 @@ class JOB_STATUS
 {
 public:
 
-	JOB_STATUS() = delete;
+	JOB_STATUS() = default;
 	JOB_STATUS(const JOB_STATUS &) = delete;
 	JOB_STATUS(JOB_STATUS &&) = default;
 	JOB_STATUS & operator=(const JOB_STATUS &) = delete;
-	JOB_STATUS & operator=(JOB_STATUS &&) = delete;
+	JOB_STATUS & operator=(JOB_STATUS &&) = default;
 	~JOB_STATUS() = default;
 
-	JOB_STATUS(JOB_IDX parent_job_idx);
+	//JOB_STATUS();
 
 	const JOB_ENTRY & get_job() const;
 
@@ -54,15 +54,26 @@ public:
 	bool is_clean() const;
 	TIME get_start_time() const;
 	TIME get_complete_time() const;
+	JOB_IDX get_parent() {return m_job_idx;}
 
+	void set_parent(JOB_IDX idx) {m_job_idx = idx;}
 	void reset();
 	void add_subtask(const WORKERS::SUBTASK & subtask);
+
+	std::string to_string() const
+	{
+		return
+			std::to_string(m_job_idx) + " " +
+			std::to_string(m_subtasks.size()) + " " +
+			std::to_string(m_start_time) + " " +
+			std::to_string(m_complete_time);
+	}
 
 private:
 	std::vector<std::reference_wrapper<const WORKERS::SUBTASK>> m_subtasks;
 	TIME m_start_time;
 	TIME m_complete_time;
-	JOB_IDX m_job_idx;
+	JOB_IDX m_job_idx = 0;
 };
 
 
@@ -74,11 +85,12 @@ public:
 	JOB_ENTRY(const JOB_ENTRY &) = delete;
 	JOB_ENTRY(JOB_ENTRY &&) = default;
 	JOB_ENTRY & operator=(const JOB_ENTRY &) = delete;
-	JOB_ENTRY & operator=(JOB_ENTRY &&) = delete;
+	JOB_ENTRY & operator=(JOB_ENTRY &&) = default;
 	~JOB_ENTRY() = default;
 
 	JOB_ENTRY(JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
-		TIME earliest_start_time, TIME subtask_duration, JOB_IDX idx);
+		TIME earliest_start_time, TIME subtask_duration);
+	void set_idx(JOB_IDX idx);
 
 	const JOB_STATUS & get_status() const;
 	JOB_STATUS & get_modifiable_status();
@@ -98,7 +110,7 @@ private:
 	size_t m_num_subtasks;
 	TIME m_earliest_start_time;
 	TIME m_subtask_duration;
-	JOB_IDX m_idx;
+	JOB_IDX m_idx = 0;
 };
 
 
@@ -154,15 +166,19 @@ public:
 	JOB_POOL & operator=(const JOB_POOL &) = delete;
 	JOB_POOL & operator=(JOB_POOL &&) = delete;
 
+	// Modifiers
+	void add_job(JOB_ENTRY && job);
+	void sort_and_create_index();
+
+	// Accessors
 	bool empty() const;
 	size_t size() const;
+	bool is_ready() const;
 
-	void add_job(JOB_ENTRY && job);
-
-	CITER cbegin() const;
-	CITER cend() const;
 	ITER begin();
 	ITER end();
+	CITER cbegin() const;
+	CITER cend() const;
 
 	JOB_ENTRY & operator[](size_t idx) { return m_jobs[idx]; }
 
@@ -176,7 +192,10 @@ private:
 	JOB_POOL(JOB_POOL &&) = delete;
 	~JOB_POOL() = default;
 
+	void re_index();
+
 	CONTAINER m_jobs;
+	bool m_sorted_and_indexed = false;
 
 	static JOB_POOL * m_instance;
 };

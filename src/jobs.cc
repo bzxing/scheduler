@@ -21,7 +21,8 @@ namespace
 {
 // TODO: These need QoR Tuning
 
-float l_get_priority_weighted_work_load(const JOB_ENTRY & job)
+// Early cost - a way we weigh jobs without putting them onto the workers.
+float l_get_job_early_cost(const JOB_ENTRY & job)
 {
 	float subtask_duration = job.get_subtask_duration();
 	float num_subtasks = job.get_num_subtasks();
@@ -30,21 +31,14 @@ float l_get_priority_weighted_work_load(const JOB_ENTRY & job)
 	float earliest = job.get_earliest_start_time();
 	float cost = ( earliest + ( std::ceil(num_subtasks / num_workers) * subtask_duration ) ) / priority;
 	return cost;
-		//float(job.get_subtask_duration()) * float(job.get_num_subtasks()) / float(job.get_priority());
 }
 
 // Ordering policy used by JOB_QUEUE. Returns true if lhs should be placed before rhs.
 bool l_job_queue_order_less_than(const JOB_ENTRY & lhs, const JOB_ENTRY & rhs)
 {
-	//if (lhs.get_earliest_start_time() != rhs.get_earliest_start_time())
-	//{
-	//	return bool(lhs.get_earliest_start_time() < rhs.get_earliest_start_time());
-	//}
-	//else
-	//{
-		return bool( l_get_priority_weighted_work_load(lhs) <
-			l_get_priority_weighted_work_load(rhs) );
-	//}
+
+	return bool( l_get_job_early_cost(lhs) <
+		l_get_job_early_cost(rhs) );
 }
 
 
@@ -87,12 +81,6 @@ COST get_total_cost()
 
 
 // Class Routines //////////////////////////////////////////////////////////////////////////////////
-
-JOB_STATUS::JOB_STATUS(JOB_IDX parent_job_idx)
-:m_job_idx(parent_job_idx)
-{
-	reset();
-}
 
 const JOB_ENTRY & JOB_STATUS::get_job() const
 {
@@ -142,14 +130,19 @@ void JOB_STATUS::add_subtask(const WORKERS::SUBTASK & subtask)
 JOB_ENTRY::JOB_ENTRY
 (
 	JOB_NAME && name, PRIORITY pri, size_t num_subtasks,
-	TIME earliest_start_time, TIME subtask_duration, JOB_IDX idx
+	TIME earliest_start_time, TIME subtask_duration
 ) :
-	m_status(idx), m_name(std::move(name)), m_priority(pri), m_num_subtasks(num_subtasks),
-	m_earliest_start_time(earliest_start_time), m_subtask_duration(subtask_duration),
-	m_idx(idx)
-
+	m_name(std::move(name)), m_priority(pri), m_num_subtasks(num_subtasks),
+	m_earliest_start_time(earliest_start_time), m_subtask_duration(subtask_duration)
 {
+	assert(num_subtasks > 0);
+	assert(subtask_duration > 0);
+}
 
+void JOB_ENTRY::set_idx(JOB_IDX idx)
+{
+	m_status.set_parent(idx);
+	m_idx = idx;
 }
 
 const JOB_NAME & JOB_ENTRY::get_name() const
@@ -208,13 +201,12 @@ std::string JOB_ENTRY::to_string() const
 
 JOB_QUEUE::JOB_QUEUE()
 {
-	JOB_POOL & parsed_jobs = JOB_POOL::get_inst();
-	assert(!parsed_jobs.empty());
-	for (auto iter = parsed_jobs.begin(); iter != parsed_jobs.end(); ++iter)
-	{
-		add_job(*iter);
-	}
+	JOB_POOL & job_pool = JOB_POOL::get_inst();
+	assert(!job_pool.empty());
+	assert(job_pool.is_ready());
+	m_jobs.assign(job_pool.begin(), job_pool.end());
 }
+
 
 void JOB_QUEUE::add_job(JOB_ENTRY & job)
 {
@@ -287,7 +279,6 @@ void JOB_QUEUE::load()
 
 }
 
-
 JOB_QUEUE & JOB_QUEUE::get_inst()
 {
 	assert(m_job_queue_inst != nullptr);
@@ -305,9 +296,30 @@ std::ostream & operator<<(std::ostream & os, const JOB_QUEUE & job_q)
 
 void JOB_POOL::add_job(JOB_ENTRY && job)
 {
+	assert(!m_sorted_and_indexed);
 	bool debug = true;
 	if (debug) std::cout << "Parsed job from input: " << job.get_name() << std::endl;
 	m_jobs.push_back(std::move(job));
+}
+
+void JOB_POOL::sort_and_create_index()
+{
+	std::sort(m_jobs.begin(), m_jobs.end(), l_job_queue_order_less_than);
+	re_index();
+	m_sorted_and_indexed = true;
+}
+
+void JOB_POOL::re_index()
+{
+	for (size_t i = 0; i < m_jobs.size(); ++i)
+	{
+		m_jobs[i].set_idx(i);
+	}
+}
+
+bool JOB_POOL::is_ready() const
+{
+	return !empty() && m_sorted_and_indexed;
 }
 
 bool JOB_POOL::empty() const

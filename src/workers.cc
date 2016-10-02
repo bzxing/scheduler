@@ -178,8 +178,11 @@ void WORKER_MGR::add_worker(WORKER && worker)
 
 void WORKER_MGR::try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_status, bool revert_after_trying)
 {
+	bool debug = false;
+
 	assert(!empty());
 	assert(job_status.is_clean());
+	assert(job_status.get_parent() == job.get_index());
 	job_status.reset();
 
 	// If revert_after_trying == true, this vector is used to memorize submissions, and revert them
@@ -216,7 +219,11 @@ void WORKER_MGR::try_submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & 
 			worker_subtask_iter_pair.first->remove_subtask(worker_subtask_iter_pair.second);
 		}
 	}
-
+	if (debug)
+	{
+		std::cout << job.to_string() << std::endl;
+		std::cout << job_status.to_string() << std::endl;
+	}
 	assert(job_status.submitted());
 
 	// TODO: Compress start time when possible. QoR measurement
@@ -230,7 +237,8 @@ void WORKER_MGR::submit_job(const JOBS::JOB_ENTRY & job, JOBS::JOB_STATUS & job_
 
 JOBS::JOB_STATUS WORKER_MGR::get_projected_job_status(const JOBS::JOB_ENTRY & job)
 {
-	JOBS::JOB_STATUS projected_status(job.get_index());
+	JOBS::JOB_STATUS projected_status;
+	projected_status.set_parent(job.get_index());
 	try_submit_job(job, projected_status, true);
 	return projected_status;
 }

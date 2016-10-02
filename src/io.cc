@@ -17,7 +17,8 @@ namespace IO
 namespace
 {
 
-JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line, JOBS::JOB_IDX idx )
+// TODO: index should be separated from this
+JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line)
 {
 	std::regex regex("(\\w+) (\\w+) (\\d+) (\\d+) (\\d+) (\\d+)");
 	std::smatch match;
@@ -26,10 +27,11 @@ JOBS::JOB_ENTRY l_string_to_job_entry(const std::string & line, JOBS::JOB_IDX id
 	assert(match.size() == 7);
 	assert(match[1] == "job");
 
-	JOBS::JOB_ENTRY job(match[2], std::stoul(match[6]), std::stoul(match[3]), std::stoul(match[5]), std::stoul(match[4]), idx);
+	JOBS::JOB_ENTRY job(match[2], std::stoul(match[6]), std::stoul(match[3]), std::stoul(match[5]), std::stoul(match[4]));
 	return job;
 }
 
+// TODO: index should be separated from this
 WORKERS::WORKER l_string_to_worker_entry(const std::string & line, WORKERS::WORKER::WORKER_IDX idx)
 {
 	std::regex regex("(\\w+) (\\w+)");
@@ -50,6 +52,8 @@ WORKERS::WORKER l_string_to_worker_entry(const std::string & line, WORKERS::WORK
 void load_from_stdin()
 {
 	std::cout << "Start reading from stdin!" << std::endl;
+	JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
+
 	while (std::cin.good())
 	{
 		std::string line;
@@ -64,9 +68,7 @@ void load_from_stdin()
 
 		if (match[0] == "job")
 		{
-			JOBS::JOB_POOL & job_pool = JOBS::JOB_POOL::get_inst();
-			JOBS::JOB_IDX new_idx = job_pool.size();
-			job_pool.add_job(l_string_to_job_entry(line, new_idx));
+			job_pool.add_job(l_string_to_job_entry(line));
 		}
 		else if (match[0] == "worker")
 		{
@@ -81,6 +83,8 @@ void load_from_stdin()
 			exit(1);
 		}
 	}
+
+	job_pool.sort_and_create_index();
 
 	//std::cout << "Done parsing! Here's the results:" << std::endl;
 	//std::cout << JOBS::JOB_POOL::get_inst();

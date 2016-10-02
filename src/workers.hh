@@ -78,7 +78,7 @@ public:
 
 private:
 	WORKER_NAME m_name;
-	WORKER_IDX m_idx;
+	WORKER_IDX m_idx = 0;
 	SUBTASK_CONTAINER m_exec_hist;
 };
 
