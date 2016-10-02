@@ -8,6 +8,7 @@
 #include <regex>
 #include <cassert>
 
+#include <chrono>
 
 
 namespace IO
@@ -103,8 +104,31 @@ void load_from_stdin()
 
 }
 
+class FUNC_TIMER
+{
+public:
+	typedef std::chrono::steady_clock CLOCK_TYPE;
+	FUNC_TIMER()
+	: m_start(CLOCK_TYPE::now())
+	{
+
+	}
+	~FUNC_TIMER()
+	{
+		CLOCK_TYPE::duration duration = CLOCK_TYPE::now() - m_start;
+		std::cout << "FUNC_TIMER: " << std::chrono::duration_cast<std::chrono::duration<float>>(duration).count() << "s\n";
+	}
+	FUNC_TIMER(const FUNC_TIMER &) = delete;
+	FUNC_TIMER(FUNC_TIMER &&) = delete;
+	FUNC_TIMER & operator=(const FUNC_TIMER &) = delete;
+	FUNC_TIMER & operator=(FUNC_TIMER &&) = delete;
+private:
+	CLOCK_TYPE::time_point m_start;
+};
+
 int main()
 {
+	FUNC_TIMER timer;
 	IO::load_from_stdin();
 	JOBS::JOB_QUEUE::load();
 	DISPATCHER::dispatch_all();

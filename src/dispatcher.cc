@@ -35,6 +35,9 @@ JOBQ_ITER l_pick_best_job_to_execute()
 	float smallest_cost_seen = std::numeric_limits<float>::max();
 	JOBS::JOB_QUEUE::ITER best_job_iter;
 
+	size_t num_new_attempts = 20;
+	size_t look_ahead = num_new_attempts;
+
 	while (job_iter != job_q.end() && num_jobs_tried < MAX_NUM_JOBS_TO_TRY)
 	{
 
@@ -47,9 +50,10 @@ JOBQ_ITER l_pick_best_job_to_execute()
 			smallest_cost_seen = cost;
 			best_job_iter = job_iter;
 			picked_attempt = num_jobs_tried;
+			look_ahead = num_jobs_tried + num_new_attempts;
 		}
 
-		if ( (cost / 7.0f > smallest_cost_seen) || ((float)num_jobs_tried+1 > (float)(picked_attempt+1) * 1.5f && num_jobs_tried > 40)) // TODO: QoR Tuning
+		if ( num_jobs_tried > look_ahead ) // TODO: QoR Tuning
 		{
 			// Not a good sign. Better give up.
 

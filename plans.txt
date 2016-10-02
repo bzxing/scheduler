@@ -11,6 +11,7 @@
 
 	- What experiments would make most sense?
 		- Lots of parameters in random test case generator
+		- Don't make "earliest time" too late - less degree of freedom for the algorithm to optimize
 
 	- Write some experiment & result collection mechanisms
 
